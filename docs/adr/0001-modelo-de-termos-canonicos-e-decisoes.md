@@ -1,0 +1,7 @@
+# Modelo de termos canônicos e decisões do MVP
+
+O MVP adota uma linguagem canônica orientada a **Próximo Passo Responsável**, não a oferta direta de crédito. Neste contexto, **cliente** significa cliente sintético pessoa física; **braço** significa uma ação selecionável pela política ou baseline; **simulação**, **proposta qualificada simulada**, **aprovação** e **contratação** são estágios rigorosamente separados; e **Proposta Qualificada Simulada** é a métrica principal, ocorrendo quando o cliente sintético conclui uma simulação e fornece dados mínimos ou documentação para pré-análise.
+
+As decisões estruturantes do MVP são: guardrails rodam antes do baseline ou da política adaptativa; a política só pode escolher entre braços elegíveis e seguros; o LLM/RAG atua apenas como camada de explicação, consulta documental e apoio à governança; e o MVP prioriza simulação, educação, documentação, encaminhamento para especialista ou `no_offer_now`, em vez de oferta direta. No escopo inicial entram veículo, imóvel e investimentos; recebíveis sintéticos ficam como evolução futura, por introduzirem complexidade adicional de pessoa jurídica e fluxo de caixa sintético.
+
+Essa decisão consolida o vocabulário e evita ambiguidades futuras que poderiam fazer o projeto parecer um motor de aprovação, precificação ou venda automática de crédito. A consequência é restringir a liberdade de exploração e a autonomia generativa, mas ganhar rastreabilidade, auditabilidade e aderência à narrativa de crédito com garantia em ambiente regulado simulado.

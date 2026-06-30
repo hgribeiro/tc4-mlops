@@ -4,7 +4,7 @@
 
 Estamos construindo uma startup tech de pequeno porte focada em inteligência aplicada à personalização responsável de ofertas financeiras em canais digitais. A empresa nasce com uma proposta clara: ajudar instituições financeiras digitais a decidir, com segurança, rastreabilidade e melhoria contínua, qual oferta, mensagem ou próximo passo apresentar para cada cliente elegível.
 
-O cliente de referência será um banco digital representado por **Lary**, CTO do banco. Lary quer melhorar a área de empréstimos, principalmente ofertas e jornadas de **empréstimo com garantia**. O banco possui um **SuperApp** como principal canal digital de escala, mas também mantém **agências físicas para clientes de relacionamento mais alto**, que demandam atendimento mais consultivo e maior cuidado na comunicação.
+O cliente de referência será um banco digital representado por **Lary**, CTO da unidade de negócio de **Empréstimos com Garantia**. Lary lidera a tecnologia dessa vertical e quer melhorar ofertas, mensagens e jornadas de crédito colateralizado em diferentes tipos de garantia. O banco possui um **SuperApp** como principal canal digital de escala, mas também mantém **agências físicas para clientes de relacionamento mais alto**, que demandam atendimento mais consultivo e maior cuidado na comunicação.
 
 A construção será conduzida por um time fundador/implementador formado por produto, engenharia, machine learning, design e governança. O stakeholder principal não será um membro interno desse time: ele será Lary, representando o banco cliente. Essa persona será usada como interlocutor de domínio para tomar decisões sobre dor de negócio, canais, ofertas, restrições, métricas e riscos, especialmente porque o time construtor não deve presumir conhecimento profundo sobre operação bancária.
 
@@ -67,17 +67,17 @@ A lógica central é baseada em multi-armed bandits, equilibrando:
 
 ## 6. Papéis envolvidos na construção e validação da plataforma
 
-### 6.1 Lary — CTO do banco cliente
+### 6.1 Lary — CTO da unidade de Empréstimos com Garantia
 
-Lary representa a instituição financeira que poderia contratar ou avaliar a plataforma. Ele não faz parte do time construtor. Atua como fonte de contexto de negócio, tecnologia, restrições operacionais, prioridades comerciais, preocupações regulatórias e critérios de sucesso do cliente.
+Lary representa a unidade de negócio de Empréstimos com Garantia da instituição financeira que poderia contratar ou avaliar a plataforma. Ele não faz parte do time construtor. Atua como fonte de contexto de negócio, tecnologia, restrições operacionais, prioridades comerciais, preocupações regulatórias e critérios de sucesso da vertical.
 
-O banco de Lary é digital, opera um SuperApp como canal principal e mantém agências físicas para clientes de relacionamento mais alto. A prioridade de Lary é melhorar a área de empréstimos, principalmente empréstimos com garantia.
+O banco de Lary é digital, opera um SuperApp como canal principal e mantém agências físicas para clientes de relacionamento mais alto. A prioridade de Lary é melhorar a jornada de empréstimos com garantia, cobrindo diferentes tipos de colateral como veículo, imóvel, investimentos e recebíveis sintéticos.
 
 Essa persona deve ser consultada sempre que houver dúvida sobre:
 
 - qual dor bancária priorizar na vertical de empréstimos;
 - qual canal simular primeiro: SuperApp, agência física ou fluxo híbrido;
-- quais ofertas de empréstimo com garantia fazem sentido;
+- quais ofertas e próximos passos de empréstimo com garantia fazem sentido por tipo de colateral;
 - quais próximos passos são plausíveis além de ofertar crédito;
 - quais métricas importam para o banco;
 - quais decisões exigem cautela, explicação ou revisão humana;
@@ -105,20 +105,20 @@ Usa a plataforma e as evidências geradas para entender valor de negócio, retor
 
 ## 7. Personas operacionais
 
-### 7.1 Lary — CTO do banco cliente
+### 7.1 Lary — CTO da unidade de Empréstimos com Garantia
 
-**Missão:** representar o ponto de vista do banco cliente, trazendo contexto de negócio, tecnologia, canais, restrições operacionais, prioridades comerciais e preocupações de risco para orientar as decisões do time construtor.
+**Missão:** representar o ponto de vista da unidade de negócio de Empréstimos com Garantia do banco cliente, trazendo contexto de negócio, tecnologia, canais, restrições operacionais, prioridades comerciais e preocupações de risco para orientar as decisões do time construtor.
 
 Lary deve funcionar como uma contraparte consultiva. Ele não implementa a plataforma, mas ajuda a decidir o que faz sentido para um banco digital com SuperApp, operação de empréstimos e agências físicas para clientes de relacionamento mais alto. Como o time construtor não conhece profundamente o domínio bancário, Lary será a principal fonte de validação sobre hipóteses de produto, operação e valor.
 
-**Perfil definido:** CTO de um banco digital. Tem visão de tecnologia, escala, segurança, integração, canais digitais, operação bancária e prioridades executivas. Seu objetivo inicial é melhorar a área de empréstimos, principalmente empréstimos com garantia.
+**Perfil definido:** CTO da unidade de negócio de Empréstimos com Garantia em um banco digital. Tem visão de tecnologia, escala, segurança, integração, canais digitais, operação bancária e prioridades executivas da vertical. Seu objetivo inicial é melhorar a originação, qualificação, simulação, documentação, atendimento consultivo e contratação responsável de empréstimos com garantia.
 
 **Contexto do banco cliente:**
 
 - banco digital com SuperApp como canal principal;
 - presença de agências físicas para clientes de relacionamento mais alto;
-- área de empréstimos como vertical prioritária;
-- interesse especial em empréstimos com garantia;
+- unidade de Empréstimos com Garantia como vertical prioritária;
+- múltiplos tipos de garantia no escopo sintético inicial: veículo, imóvel, investimentos e recebíveis sintéticos;
 - necessidade de equilibrar conversão, experiência, risco, governança e custo operacional.
 
 **Responsabilidades:**
@@ -946,7 +946,7 @@ Algumas decisões já foram tomadas:
 1. O banco cliente de referência será um banco digital.
 2. O stakeholder do banco cliente será **Lary**, CTO do banco.
 3. A dor prioritária será melhorar a área de empréstimos.
-4. O foco inicial será empréstimo com garantia.
+4. O foco inicial será empréstimo com garantia, com múltiplos tipos de colateral sintético: veículo, imóvel, investimentos e recebíveis.
 5. O banco possui SuperApp e também agências físicas para clientes de relacionamento mais alto.
 
 Ainda será necessário decidir:
@@ -975,7 +975,7 @@ A empresa será construída como uma plataforma pequena, técnica e demonstráve
 
 As personas operacionais serão usadas como mecanismo de construção e validação:
 
-- **Lary, CTO do banco cliente**, para contexto de domínio, dor de negócio, viabilidade, prioridades, métricas, tecnologia e restrições bancárias;
+- **Lary, CTO da unidade de Empréstimos com Garantia**, para contexto de domínio, dor de negócio, viabilidade, prioridades, métricas, tecnologia e restrições da vertical;
 - gerente de produto da startup para escopo e priorização;
 - tech lead/engenheiro de ML da startup para arquitetura e implementação;
 - product designer da startup para experiência, explicabilidade e narrativa;

@@ -2,7 +2,7 @@
 
 ## 1. Objetivo deste enriquecimento
 
-Este documento adiciona contexto de mercado e de domínio bancário para orientar a construção da plataforma de experimentação adaptativa. O foco é o cliente representado por **Lary**, CTO de um banco digital que deseja melhorar a área de empréstimos, principalmente jornadas de **empréstimo com garantia**.
+Este documento adiciona contexto de mercado e de domínio bancário para orientar a construção da plataforma de experimentação adaptativa. O foco é o cliente representado por **Lary**, CTO da unidade de negócio de **Empréstimos com Garantia** de um banco digital, responsável por melhorar jornadas de crédito colateralizado com diferentes tipos de garantia.
 
 O objetivo não é copiar produtos reais de bancos, mas usar referências públicas para criar hipóteses plausíveis de produto, canais, métricas, riscos e jornadas sintéticas.
 
@@ -12,8 +12,8 @@ O banco cliente é um banco digital com:
 
 - **SuperApp** como principal canal de relacionamento e escala;
 - **agências físicas** ou atendimento presencial/consultivo para clientes de relacionamento mais alto;
-- vertical prioritária de **empréstimos**;
-- interesse especial em **empréstimos com garantia**;
+- vertical prioritária de **empréstimos com garantia**;
+- escopo com múltiplos tipos de garantia, como veículo, imóvel, investimentos e recebíveis sintéticos;
 - necessidade de combinar conversão, experiência, governança, risco e eficiência operacional.
 
 Lary, CTO do banco, deve avaliar se a plataforma consegue apoiar decisões melhores sobre qual próximo passo apresentar a cada cliente elegível.
@@ -137,9 +137,10 @@ O catálogo sintético pode conter:
 
 Para a primeira versão, recomenda-se começar com:
 
-1. **empréstimo com garantia de veículo** — jornada mais simples;
-2. **empréstimo com garantia de imóvel** — maior valor e maior necessidade de cautela;
-3. **empréstimo com garantia de investimentos** — bom caso para cliente de alto relacionamento.
+1. **empréstimo com garantia de veículo** — jornada mais simples e adequada para autosserviço inicial;
+2. **empréstimo com garantia de imóvel** — maior valor, ciclo mais longo e maior necessidade de cautela;
+3. **empréstimo com garantia de investimentos** — bom caso para cliente de alto relacionamento;
+4. **empréstimo com garantia de recebíveis sintéticos** — opção para cenários PJ ou cliente com fluxo recorrente modelado sinteticamente.
 
 ### 4.4 Braços do bandit
 
@@ -275,7 +276,7 @@ Estas perguntas devem ser usadas em conversas futuras com a persona Lary:
 
 1. Qual é a principal dor atual da área de empréstimos: aquisição, conversão, abandono, custo, risco ou experiência?
 2. O foco inicial deve ser cliente pessoa física, alta renda, pessoa jurídica ou uma mistura sintética?
-3. Qual garantia é mais estratégica: veículo, imóvel ou investimentos?
+3. Qual garantia é mais estratégica para o MVP: veículo, imóvel, investimentos ou recebíveis sintéticos?
 4. O SuperApp já concentra simulações de empréstimo ou apenas comunicação/oferta?
 5. Quando uma oferta deve ir para atendimento consultivo em vez de autosserviço?
 6. Quais sinais indicam que o cliente está pronto para uma oferta direta?
@@ -291,7 +292,7 @@ Estas perguntas devem ser usadas em conversas futuras com a persona Lary:
 
 ## 10. Decisão enriquecida
 
-Com base nas referências públicas, a plataforma deve ser direcionada inicialmente para uma jornada de **experimentação adaptativa em empréstimos com garantia**, combinando SuperApp, atendimento consultivo e governança.
+Com base nas referências públicas, a plataforma deve ser direcionada inicialmente para uma jornada de **experimentação adaptativa em empréstimos com garantia**, combinando múltiplos tipos de colateral, SuperApp, atendimento consultivo e governança.
 
 A decisão adaptativa não deve escolher apenas “qual produto vender”, mas sim o **melhor próximo passo responsável** para cada contexto sintético:
 
