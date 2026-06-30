@@ -192,14 +192,48 @@ Documentos essenciais:
 
 ### Pré-requisitos atuais
 
-Nesta fase, o repositório é majoritariamente documental. Não há ainda pacote Python, CLI ou suíte de testes completa.
+- Python 3.10+;
+- opcional: ambiente virtual local;
+- Kaggle CLI ou download direto da UCI para dados públicos, apenas quando os dados forem necessários.
 
-Recomendado para próximas etapas:
+A primeira interface executável é uma CLI Python sem dependências externas. Ela recebe um **Cliente Sintético** em JSON, aplica guardrails, usa um baseline determinístico inicial e grava log auditável minimizado.
 
-- Python 3.11+;
-- ambiente virtual local;
-- `pytest`, `ruff`, `mypy` ou equivalentes quando o código for criado;
-- Kaggle CLI ou download direto da UCI para dados públicos.
+### Executar a primeira decisão demonstrável
+
+Sem instalar o pacote:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step decide \
+  --input examples/synthetic-customers/vehicle-simple.json \
+  --audit-log-dir logs/decisions \
+  --pretty
+```
+
+Opcionalmente, instalar em modo editável para usar o comando console:
+
+```bash
+python -m pip install -e .
+responsible-next-step decide \
+  --input examples/synthetic-customers/vehicle-simple.json \
+  --audit-log-dir logs/decisions \
+  --pretty
+```
+
+Exemplos adicionais:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step decide \
+  --input examples/synthetic-customers/home-complex.json \
+  --audit-log-dir logs/decisions \
+  --pretty
+
+PYTHONPATH=src python -m responsible_next_step decide \
+  --input examples/synthetic-customers/guardrail-sensitive.json \
+  --audit-log-dir logs/decisions \
+  --pretty
+```
+
+A saída inclui `decision_id`, `request_id`, `selected_action`, `policy_version`, `reason_codes`, `requires_human_review`, `guardrails_triggered`, `audit_log_ref` e flags explícitas de que a decisão **não é aprovação**, **não é contratação**, **não define taxa** e **não define limite real**.
 
 ### Baixar a base pública
 
@@ -268,9 +302,9 @@ Estado atual:
 Próximas entregas recomendadas:
 
 - [ ] criar `data/golden_set/evaluation_cases.jsonl`;
-- [ ] implementar baseline determinístico;
-- [ ] implementar CLI de decisão;
-- [ ] criar testes de aceitação do contrato da CLI;
+- [x] implementar baseline determinístico inicial;
+- [x] implementar CLI de decisão;
+- [x] criar testes de aceitação do contrato da CLI;
 - [ ] implementar avaliação offline;
 - [ ] implementar Thompson Sampling contextual simplificado;
 - [ ] criar `docs/model-card.md`, `docs/system-card.md` e `docs/lgpd-plan.md`;

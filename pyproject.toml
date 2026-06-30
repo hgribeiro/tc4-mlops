@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "responsible-next-step-lab"
+version = "0.1.0"
+description = "CLI demonstrável para Próximo Passo Responsável em Empréstimos com Garantia sintéticos."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+responsible-next-step = "responsible_next_step.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
