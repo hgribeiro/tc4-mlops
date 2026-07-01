@@ -55,32 +55,32 @@ O projeto seguirá uma sequência incremental:
 
 ### 3.3 Base pública Kaggle
 
-- [ ] Escolher base pública principal.
-- [ ] Recomendação inicial: Bank Marketing.
-- [ ] Criar `data/kaggle/README.md`.
-- [ ] Documentar:
-  - [ ] fonte;
-  - [ ] link;
-  - [ ] versão;
-  - [ ] licença;
-  - [ ] target;
-  - [ ] colunas originais;
-  - [ ] limitações;
-  - [ ] instruções de download.
-- [ ] Documentar descarte de colunas com vazamento temporal.
-- [ ] Confirmar tratamento da coluna `duration`, se a base escolhida for Bank Marketing.
+- [x] Escolher base pública principal.
+- [x] Recomendação inicial: Bank Marketing.
+- [x] Criar `data/kaggle/README.md`.
+- [x] Documentar:
+  - [x] fonte;
+  - [x] link;
+  - [x] versão;
+  - [x] licença;
+  - [x] target;
+  - [x] colunas originais;
+  - [x] limitações;
+  - [x] instruções de download.
+- [x] Documentar descarte de colunas com vazamento temporal.
+- [x] Confirmar tratamento da coluna `duration`, se a base escolhida for Bank Marketing.
 
 ### 3.4 Schema dos dados sintéticos
 
-- [ ] Criar `docs/data/synthetic-schema.md`.
-- [ ] Definir schema de `offer_catalog`.
-- [ ] Definir schema de `offer_events`.
-- [ ] Definir schema de `delayed_rewards`.
-- [ ] Definir schema de `evaluation_cases`.
-- [ ] Definir sementes aleatórias.
-- [ ] Definir horizonte temporal por tipo de garantia.
-- [ ] Definir segmentos sintéticos não sensíveis.
-- [ ] Definir campos mínimos para auditoria.
+- [x] Criar `docs/data/synthetic-schema.md`.
+- [x] Definir schema de `offer_catalog`.
+- [x] Definir schema de `offer_events`.
+- [x] Definir schema de `delayed_rewards`.
+- [x] Definir schema de `evaluation_cases`.
+- [x] Definir sementes aleatórias.
+- [x] Definir horizonte temporal por tipo de garantia.
+- [x] Definir segmentos sintéticos não sensíveis.
+- [x] Definir campos mínimos para auditoria.
 
 ### 3.5 Golden set
 
@@ -103,14 +103,14 @@ O projeto seguirá uma sequência incremental:
 
 ### 3.6 Baseline determinístico
 
-- [ ] Implementar política simples por regra.
+- [x] Implementar política simples por regra.
 - [ ] Regras iniciais sugeridas:
-  - [ ] garantia de imóvel com alta complexidade → `route_to_specialist`;
-  - [ ] veículo com alto engajamento digital → oferta/simulação no SuperApp;
-  - [ ] baixa confiança → conteúdo educativo;
-  - [ ] inelegível → `no_offer_now`.
-- [ ] Registrar versão da política baseline.
-- [ ] Gerar logs auditáveis.
+  - [x] garantia de imóvel com alta complexidade → `route_to_specialist`;
+  - [x] veículo com alto engajamento digital → oferta/simulação no SuperApp;
+  - [ ] baixa confiança → conteúdo educativo — pendente de decisão, pois a implementação inicial roteia baixa confiança sensível para especialista;
+  - [x] inelegível → `no_offer_now`.
+- [x] Registrar versão da política baseline.
+- [x] Gerar logs auditáveis.
 - [ ] Medir conversão/recompensa simulada.
 
 ### 3.7 Política adaptativa
@@ -132,16 +132,16 @@ O projeto seguirá uma sequência incremental:
 
 ### 3.8 Interface demonstrável
 
-- [ ] Escolher primeira interface: CLI, API, notebook ou app.
-- [ ] Recomendação inicial: CLI simples ou API REST mínima.
-- [ ] Definir contrato de entrada.
-- [ ] Definir contrato de saída.
-- [ ] Incluir reason codes.
-- [ ] Incluir `policy_version`.
-- [ ] Incluir `requires_human_review`.
-- [ ] Incluir `guardrails_triggered`.
-- [ ] Gerar log auditável por decisão.
-- [ ] Criar pelo menos um exemplo executável.
+- [x] Escolher primeira interface: CLI, API, notebook ou app — decisão inicial: CLI.
+- [x] Recomendação inicial: CLI simples ou API REST mínima.
+- [x] Definir contrato de entrada.
+- [x] Definir contrato de saída.
+- [x] Incluir reason codes.
+- [x] Incluir `policy_version`.
+- [x] Incluir `requires_human_review`.
+- [x] Incluir `guardrails_triggered`.
+- [x] Gerar log auditável por decisão.
+- [x] Criar pelo menos um exemplo executável.
 
 ### 3.9 Governança e documentação obrigatória
 
@@ -172,12 +172,12 @@ O projeto seguirá uma sequência incremental:
 ### 3.11 Narrativa de demo
 
 - [ ] Criar roteiro da demo.
-- [ ] Cena 1: cliente digital simples recebe simulação/oferta de veículo.
-- [ ] Cena 2: cliente com garantia imóvel ou alta complexidade é roteado para especialista.
-- [ ] Cena 3: cliente inelegível/adversarial recebe `no_offer_now` ou conteúdo educativo.
-- [ ] Mostrar log auditável.
-- [ ] Mostrar reason codes.
-- [ ] Mostrar versão da política.
+- [x] Cena 1: cliente digital simples recebe simulação/oferta de veículo.
+- [x] Cena 2: cliente com garantia imóvel ou alta complexidade é roteado para especialista.
+- [x] Cena 3: cliente inelegível/adversarial recebe `no_offer_now` ou conteúdo educativo.
+- [x] Mostrar log auditável.
+- [x] Mostrar reason codes.
+- [x] Mostrar versão da política.
 - [ ] Mostrar diferença entre baseline e política adaptativa.
 - [ ] Preparar plano de contingência caso demo ao vivo falhe.
 
