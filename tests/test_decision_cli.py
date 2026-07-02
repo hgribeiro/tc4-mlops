@@ -160,7 +160,38 @@ class DecisionCliContractTest(unittest.TestCase):
         self.assertEqual(decision["selected_action"], "route_to_specialist")
         self.assertTrue(decision["requires_human_review"])
         self.assertIn("human_in_the_loop", decision["reason_codes"])
+        self.assertIn("home_collateral_complexity", decision["reason_codes"])
+        self.assertIn("specialist_guidance_required", decision["reason_codes"])
+        self.assertIn("low_policy_confidence", decision["reason_codes"])
         self.assertIn("route_to_specialist", decision["eligible_actions"])
+        self.assertTrue(decision["not_simulated_qualified_proposal"])
+        self.assertIn("simulação", decision["message"])
+        self.assertIn("Proposta Qualificada Simulada", decision["message"])
+        self.assertIn("aprovação", decision["message"])
+        self.assertIn("contratação", decision["message"])
+
+    def test_documented_home_complex_example_file_runs_end_to_end(self):
+        example_path = REPO_ROOT / "examples" / "synthetic-customers" / "home-complex.json"
+        payload = json.loads(example_path.read_text(encoding="utf-8"))
+
+        decision, _ = self.run_cli(payload)
+
+        self.assertEqual(decision["selected_action"], "route_to_specialist")
+        self.assertTrue(decision["requires_human_review"])
+        self.assertEqual(decision["guardrails_triggered"], [])
+        self.assertIn("home_collateral_complexity", decision["reason_codes"])
+        self.assertIn("specialist_guidance_required", decision["reason_codes"])
+        self.assertIn("human_in_the_loop", decision["reason_codes"])
+
+        audit_path = Path(decision["audit_log_ref"])
+        self.assertTrue(audit_path.exists())
+        audit_record = json.loads(audit_path.read_text(encoding="utf-8").strip())
+        self.assertEqual(audit_record["decision_id"], decision["decision_id"])
+        self.assertEqual(audit_record["selected_action"], "route_to_specialist")
+        self.assertTrue(audit_record["requires_human_review"])
+        self.assertEqual(audit_record["context_minimized"]["collateral_type"], "home")
+        self.assertTrue(audit_record["not_credit_approval"])
+        self.assertTrue(audit_record["not_credit_contracting"])
 
     def test_guardrails_block_prohibited_data_and_temporal_leakage_without_logging_values(self):
         payload = minimal_customer(

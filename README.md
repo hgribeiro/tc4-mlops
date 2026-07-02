@@ -219,7 +219,10 @@ responsible-next-step decide \
   --pretty
 ```
 
-A documentação detalhada da primeira cena está em [`docs/demo/cena-1-veiculo-digital.md`](docs/demo/cena-1-veiculo-digital.md).
+Documentação detalhada das cenas demonstráveis:
+
+- [`docs/demo/cena-1-veiculo-digital.md`](docs/demo/cena-1-veiculo-digital.md);
+- [`docs/demo/cena-2-imovel-complexo.md`](docs/demo/cena-2-imovel-complexo.md).
 
 Exemplos adicionais:
 

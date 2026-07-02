@@ -144,10 +144,13 @@ def decide(context: Mapping[str, Any], audit_log_dir: Path) -> Dict[str, Any]:
         "not_credit_contracting": True,
         "does_not_define_real_rate": True,
         "does_not_define_real_limit": True,
+        "not_simulated_qualified_proposal": True,
         "requires_formal_credit_analysis": True,
         "message": (
             "Esta decisão recomenda um Próximo Passo Responsável de jornada para um "
-            "Cliente Sintético; não representa aprovação, contratação, taxa ou limite real de crédito."
+            "Cliente Sintético; pode iniciar uma simulação, mas não representa aprovação, "
+            "não cria Proposta Qualificada Simulada, não representa contratação e não define "
+            "taxa ou limite real de crédito."
         ),
     }
 
@@ -250,10 +253,21 @@ def _select_action(context: Mapping[str, Any], guardrails: List[str]) -> Selecti
         )
 
     if risk == "high" or confidence == "low" or complexity == "high" or human_review_hint:
+        reason_codes = ["specialist_required", "high_value_or_complex_case"]
+        if collateral == "home":
+            reason_codes.extend(["home_collateral_complexity", "specialist_guidance_required"])
+        if complexity == "high":
+            reason_codes.append("collateral_complexity")
+        if confidence == "low":
+            reason_codes.append("low_policy_confidence")
+        if risk == "high":
+            reason_codes.append("high_synthetic_risk")
+        reason_codes.append("human_in_the_loop")
+
         return Selection(
             action="route_to_specialist",
             eligible_actions=_ordered_subset(eligible, ["route_to_specialist", "request_documents", "educational_content_secured_credit", "no_offer_now"]),
-            reason_codes=["specialist_required", "high_value_or_complex_case", "low_policy_confidence" if confidence == "low" else "collateral_complexity", "human_in_the_loop"],
+            reason_codes=_unique(reason_codes),
             requires_human_review=True,
         )
 
@@ -332,6 +346,10 @@ def _append_audit_log(
         "config_ref": "docs/product/offer-arms.md#baseline-deterministico-inicial",
         "environment": "local_demo",
         "not_credit_approval": True,
+        "not_credit_contracting": True,
+        "does_not_define_real_rate": True,
+        "does_not_define_real_limit": True,
+        "not_simulated_qualified_proposal": True,
         "requires_formal_credit_analysis": True,
     }
     with audit_path.open("a", encoding="utf-8") as audit_file:
