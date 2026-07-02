@@ -122,6 +122,22 @@ class DecisionCliContractTest(unittest.TestCase):
         self.assertIn("context_minimized", audit_record)
         self.assertEqual(audit_record["context_minimized"]["collateral_type"], "vehicle")
 
+    def test_documented_vehicle_example_file_runs_end_to_end(self):
+        example_path = REPO_ROOT / "examples" / "synthetic-customers" / "vehicle-simple.json"
+        payload = json.loads(example_path.read_text(encoding="utf-8"))
+
+        decision, _ = self.run_cli(payload)
+
+        self.assertEqual(decision["selected_action"], "simulate_vehicle_secured_loan")
+        self.assertEqual(decision["policy_version"], "baseline_deterministic_v0.1")
+        self.assertEqual(decision["guardrails_triggered"], [])
+        self.assertFalse(decision["requires_human_review"])
+        self.assertIn("vehicle_collateral_anchor", decision["reason_codes"])
+        self.assertIn("digital_channel_fit", decision["reason_codes"])
+        self.assertIn("sufficient_context_for_simulation", decision["reason_codes"])
+        self.assertIn("no_critical_guardrail_triggered", decision["reason_codes"])
+        self.assertTrue(Path(decision["audit_log_ref"]).exists())
+
     def test_home_complex_customer_is_routed_to_human_review(self):
         decision, _ = self.run_cli(
             minimal_customer(

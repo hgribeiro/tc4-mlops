@@ -219,6 +219,8 @@ responsible-next-step decide \
   --pretty
 ```
 
+A documentação detalhada da primeira cena está em [`docs/demo/cena-1-veiculo-digital.md`](docs/demo/cena-1-veiculo-digital.md).
+
 Exemplos adicionais:
 
 ```bash
