@@ -1,5 +1,7 @@
-"""Responsible Next Step Lab decision package."""
+"""Responsible Next Step Lab public interfaces."""
 
-__all__ = ["__version__"]
+from .bank_marketing import PreparedBankMarketing, prepare_bank_marketing
+
+__all__ = ["PreparedBankMarketing", "__version__", "prepare_bank_marketing"]
 
 __version__ = "0.1.0"

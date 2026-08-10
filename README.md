@@ -106,7 +106,8 @@ A base pública inicial é **Bank Marketing**, usada apenas como proxy público 
 
 Documentação principal:
 
-- [`data/kaggle/README.md`](data/kaggle/README.md): fonte, licença, target, colunas, limitações e download.
+- [`data/kaggle/README.md`](data/kaggle/README.md): fonte, licença, target, colunas, limitações, download e execução da preparação.
+- [`notebooks/bank-marketing-eda.ipynb`](notebooks/bank-marketing-eda.ipynb): EDA executável e exportação dos artefatos preparados.
 - [`docs/data/synthetic-schema.md`](docs/data/synthetic-schema.md): schema mínimo do Cliente Sintético e dados auxiliares.
 
 Boas práticas adotadas:
@@ -245,23 +246,48 @@ A saída inclui `decision_id`, `request_id`, `selected_action`, `policy_version`
 Opção UCI:
 
 ```bash
-mkdir -p data/kaggle/raw
+mkdir -p data/kaggle/raw/bank-marketing-download \
+  data/kaggle/raw/bank-marketing
 curl -L "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip" \
   -o data/kaggle/raw/bank-marketing.zip
-unzip data/kaggle/raw/bank-marketing.zip -d data/kaggle/raw/bank-marketing
+unzip -o data/kaggle/raw/bank-marketing.zip bank.zip \
+  -d data/kaggle/raw/bank-marketing-download
+unzip -jo data/kaggle/raw/bank-marketing-download/bank.zip bank-full.csv \
+  -d data/kaggle/raw/bank-marketing
 ```
 
 Opção Kaggle CLI:
 
 ```bash
-mkdir -p data/kaggle/raw
+mkdir -p data/kaggle/raw/bank-marketing
 kaggle datasets download \
-  -d marfrancolopez/bank-marketing \
-  -p data/kaggle/raw \
+  -d sushant097/bank-marketing-dataset-full \
+  -p data/kaggle/raw/bank-marketing \
   --unzip
 ```
 
-Antes de usar qualquer dado para decisão pré-interação, remover ou ignorar `duration`.
+O link direto e as instruções completas estão em [`data/kaggle/README.md`](data/kaggle/README.md). Com `bank-full.csv` no caminho documentado, execute:
+
+```bash
+python -m pip install -e .
+python -m pip install jupyter
+jupyter nbconvert --to notebook --execute \
+  notebooks/bank-marketing-eda.ipynb \
+  --output bank-marketing-eda.executed.ipynb
+```
+
+A preparação pública também pode ser reutilizada em Python:
+
+```python
+from responsible_next_step import prepare_bank_marketing
+
+prepared = prepare_bank_marketing(
+    "data/kaggle/raw/bank-marketing/bank-full.csv",
+    seed=20260629,
+)
+```
+
+`prepared.features` exclui `duration` e as categorias proibidas; `prepared.target` contém o target binário e `prepared.metadata` registra linhagem e reprodutibilidade.
 
 ## Qualidade de engenharia
 
@@ -302,7 +328,9 @@ Estado atual:
 - [x] MVP narrativo documentado;
 - [x] catálogo de braços documentado;
 - [x] base pública documentada;
-- [x] schema mínimo do Cliente Sintético documentado.
+- [x] schema mínimo do Cliente Sintético documentado;
+- [x] preparação reproduzível da Bank Marketing sem vazamento temporal;
+- [x] notebook de EDA e tratamento executável.
 
 Próximas entregas recomendadas:
 

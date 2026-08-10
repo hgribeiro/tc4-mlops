@@ -69,6 +69,9 @@ O projeto seguirá uma sequência incremental:
   - [x] instruções de download.
 - [x] Documentar descarte de colunas com vazamento temporal.
 - [x] Confirmar tratamento da coluna `duration`, se a base escolhida for Bank Marketing.
+- [x] Implementar preparação pública, determinística e com metadados de linhagem.
+- [x] Entregar notebook executável de EDA e tratamento sem vazamento temporal.
+- [x] Validar a preparação com fixture local, sem rede.
 
 ### 3.4 Schema dos dados sintéticos
 

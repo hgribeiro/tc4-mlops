@@ -1,0 +1,5 @@
+age;job;marital;education;default;balance;housing;loan;contact;day;month;duration;campaign;pdays;previous;poutcome;y
+30;management;single;tertiary;no;1200;yes;no;cellular;5;may;180;2;-1;0;unknown;no
+41;technician;married;secondary;no;800;yes;no;telephone;12;jun;420;4;35;2;success;yes
+52;retired;divorced;primary;no;2500;no;no;unknown;20;jul;90;1;7;1;failure;no
+36;services;married;secondary;yes;-50;yes;yes;cellular;3;aug;300;12;14;3;other;yes

@@ -14,7 +14,8 @@ A base não é uma base de crédito com garantia. Ela não contém clientes reai
 | Fonte canônica | UCI Machine Learning Repository — dataset ID 222 |
 | Link UCI | https://archive.ics.uci.edu/dataset/222/bank |
 | Link de download UCI | https://archive.ics.uci.edu/static/public/222/bank+marketing.zip |
-| Espelho Kaggle recomendado | https://www.kaggle.com/datasets/marfrancolopez/bank-marketing |
+| Espelho Kaggle recomendado | https://www.kaggle.com/datasets/sushant097/bank-marketing-dataset-full |
+| Download direto via API Kaggle | https://www.kaggle.com/api/v1/datasets/download/sushant097/bank-marketing-dataset-full |
 | Arquivo recomendado | `bank-full.csv` quando disponível |
 | Licença | UCI lista a base como **CC BY 4.0**. Espelhos Kaggle podem ter metadados próprios; verificar antes de redistribuir. |
 | Citação original | Moro, Cortez e Rita — estudo de campanhas de marketing bancário direto. |
@@ -108,24 +109,70 @@ Não incluir no MVP:
 
 ### Opção A — UCI canônico
 
+O pacote UCI contém um segundo arquivo compactado chamado `bank.zip`. Os comandos abaixo fazem as duas extrações e colocam `bank-full.csv` no local padrão consumido pelo notebook:
+
 ```bash
-mkdir -p data/kaggle/raw
+mkdir -p data/kaggle/raw/bank-marketing-download \
+  data/kaggle/raw/bank-marketing
 curl -L "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip" \
   -o data/kaggle/raw/bank-marketing.zip
-unzip data/kaggle/raw/bank-marketing.zip -d data/kaggle/raw/bank-marketing
+unzip -o data/kaggle/raw/bank-marketing.zip bank.zip \
+  -d data/kaggle/raw/bank-marketing-download
+unzip -jo data/kaggle/raw/bank-marketing-download/bank.zip bank-full.csv \
+  -d data/kaggle/raw/bank-marketing
 ```
+
+O arquivo deve ficar em `data/kaggle/raw/bank-marketing/bank-full.csv`.
 
 ### Opção B — Kaggle CLI
 
 Antes, configurar credenciais do Kaggle conforme a documentação oficial do Kaggle.
 
 ```bash
-mkdir -p data/kaggle/raw
+mkdir -p data/kaggle/raw/bank-marketing
 kaggle datasets download \
-  -d marfrancolopez/bank-marketing \
-  -p data/kaggle/raw \
+  -d sushant097/bank-marketing-dataset-full \
+  -p data/kaggle/raw/bank-marketing \
   --unzip
 ```
+
+Confirme que o arquivo está no caminho padrão:
+
+```bash
+test -f data/kaggle/raw/bank-marketing/bank-full.csv
+```
+
+### Executar a preparação e a EDA
+
+A função pública `responsible_next_step.prepare_bank_marketing` recebe o caminho do CSV e uma seed. Ela retorna `features`, `target` binário e `metadata` de linhagem. O schema preparado usa uma lista explícita de features pré-interação; por isso, `duration`, identificadores e categorias proibidas não são propagados.
+
+O notebook `notebooks/bank-marketing-eda.ipynb` consome essa função, apresenta dimensões, distribuição do target, qualidade básica e decisões de tratamento, e grava:
+
+- `data/kaggle/processed/bank-marketing/features.jsonl`;
+- `data/kaggle/processed/bank-marketing/target.csv`;
+- `data/kaggle/processed/bank-marketing/metadata.json`.
+
+Para executá-lo do início ao fim a partir da raiz do repositório:
+
+```bash
+python -m pip install -e .
+python -m pip install jupyter
+jupyter nbconvert --to notebook --execute \
+  notebooks/bank-marketing-eda.ipynb \
+  --output bank-marketing-eda.executed.ipynb
+```
+
+O caminho e a seed podem ser sobrescritos sem editar o notebook:
+
+```bash
+BANK_MARKETING_CSV=/outro/caminho/bank-full.csv \
+BANK_MARKETING_SEED=42 \
+jupyter nbconvert --to notebook --execute \
+  notebooks/bank-marketing-eda.ipynb \
+  --output bank-marketing-eda.executed.ipynb
+```
+
+A ordem dos registros preparados é determinística para a seed. Os metadados registram fonte, versão, schema, seed e SHA-256 do arquivo bruto. Não há download de rede durante a preparação.
 
 ## 11. Convenção de armazenamento
 
