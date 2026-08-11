@@ -133,34 +133,63 @@ data/
 
 ## MLOps e governança
 
-O projeto deve tratar políticas de decisão como artefatos versionados.
+### Uso pretendido e autoridade da decisão
 
-Fluxo alvo:
+Este laboratório serve para comparar, offline, um Baseline Determinístico e uma Política Adaptativa na escolha do **Próximo Passo Responsável** para Clientes Sintéticos. Seu uso pretendido é demonstrar experimentação, rastreabilidade, Guardrails e explicabilidade para Lary; não é decidir crédito real nem comprovar impacto causal.
 
-1. definir ou atualizar catálogo de braços;
-2. validar schema e guardrails;
-3. rodar baseline determinístico;
-4. rodar política adaptativa em avaliação offline;
-5. comparar métricas contra baseline;
-6. revisar fairness, exploração, regret e guardrails;
-7. exigir aprovação humana antes de promoção;
-8. monitorar decisões, recompensas e drift;
-9. permitir pausa ou rollback.
+As etapas da jornada não são intercambiáveis:
 
-Métricas esperadas:
+| Etapa | Significado neste MVP |
+| --- | --- |
+| **Próximo Passo Responsável** | Recomendação de jornada entre Braços seguros; não é recomendação nem decisão de concessão de crédito. |
+| **Simulação** | Exploração de uma possibilidade sintética, sem taxa, limite ou compromisso real. |
+| **Proposta Qualificada Simulada** | Simulação concluída com dados mínimos ou documentação sintética para pré-análise; é uma métrica, não uma decisão de crédito. |
+| **Aprovação** | Decisão formal de crédito, fora do escopo e dependente de processos reais de risco e compliance. |
+| **Contratação** | Formalização posterior à aprovação, também fora do escopo. |
 
-- uplift contra baseline;
-- recompensa acumulada;
-- regret acumulado;
-- taxa de exploração;
-- conversão qualificada simulada;
-- proposta qualificada simulada;
-- exposição por braço;
-- fairness por segmento sintético;
-- taxa de guardrails acionados;
-- cobertura de logs auditáveis.
+São usos fora de escopo: aprovação ou contratação automática; cálculo de limite ou taxa; decisão de elegibilidade real; recomendação de investimento; uso por banco ou cliente real; integração com core bancário; substituição de risco, jurídico ou compliance; e operação em produção regulada. LLM/RAG pode explicar artefatos existentes, mas não escolhe Braços nem altera Guardrails.
 
-LLM/RAG pode apoiar explicação, consulta documental e governança, mas **não** escolhe braço, não aprova crédito e não substitui guardrails ou reason codes.
+### Limitações e riscos conhecidos
+
+- **Bank Marketing é apenas proxy:** descreve resposta a campanha de depósito a prazo, não jornadas de Empréstimos com Garantia. Seus campos não comprovam intenção, risco, elegibilidade ou resultado de crédito.
+- **Recompensas são simuladas:** probabilidades e contrafactuais foram definidos pelo laboratório. Uplift, regret e exposição medem o comportamento nesse simulador, não efeito causal ou desempenho futuro.
+- **Cobertura limitada:** o Golden Set tem cinco casos e não representa toda a diversidade operacional, adversarial ou de canais.
+- **Fairness limitada:** segmentos são sintéticos e não sensíveis. A análise de exposição pode revelar desequilíbrios no simulador, mas não demonstra equidade para grupos protegidos nem autoriza inferi-los por proxies.
+- **Riscos residuais:** proxy inadequado, vazamento temporal, exploração excessiva, repetição de contato, recompensa atrasada ou censurada, Reason Code insuficiente e uso indevido da saída como oferta ou aprovação.
+
+Por essas limitações, nenhum resultado autoriza promoção para produção bancária ou comunicação de concessão de crédito.
+
+### Dados, minimização e LGPD simulada
+
+O projeto adota princípios de finalidade, necessidade, minimização, transparência e rastreabilidade apenas como **postura simulada de LGPD**; não declara conformidade jurídica. São proibidos dados reais de clientes, CPF, nome, e-mail, telefone, endereço, identificadores pessoais, renda, saldo ou patrimônio reais, dados reais de garantias, atributos sensíveis, geolocalização granular e regras comerciais privadas. Idade, estado civil, escolaridade e ocupação não são features de decisão; `duration` é bloqueada por vazamento temporal.
+
+A entrada deve conter somente os campos sintéticos permitidos em [`docs/data/synthetic-schema.md`](docs/data/synthetic-schema.md). O log persiste contexto minimizado, IDs sintéticos, versão da política, Braço selecionado e elegível, Reason Codes, Guardrails e indicação de revisão humana; campos proibidos não devem ser retidos.
+
+A retenção é local e demonstrativa: `logs/`, `artifacts/`, bancos e artefatos do MLflow ficam fora do Git. Não existe descarte automático nem política corporativa de retenção. O operador da demo deve usar diretório temporário e excluir esses artefatos ao encerrar a avaliação; qualquer retenção além da sessão exige finalidade, prazo e responsável definidos antes da coleta.
+
+### Guardrails, Humano no Loop e auditoria
+
+Guardrails são aplicados antes de qualquer política, e a Política Adaptativa só pode escolher entre Braços elegíveis. Contexto crítico, dado proibido, `duration`, garantia/canal inválido, contexto obrigatório ausente ou repetição excessiva restringem a decisão a `no_offer_now`. Esse comportamento reduz risco, mas não substitui validação humana ou controles bancários reais.
+
+`requires_human_review = true` é exigido para encaminhamento a especialista e para cenários como garantia de imóvel em simulação/documentação, alta complexidade, alto risco sintético, baixa confiança ou `human_review_hint`. A revisão humana interpreta o próximo passo e pode interromper a jornada; ela não transforma a saída em Aprovação. Casos bloqueados com `no_offer_now` não são aprovados silenciosamente e podem ser analisados fora do decisor quando houver suspeita de falha do Guardrail.
+
+Cada decisão registra `decision_id`, `request_id`, `policy_version`, `selected_action`, `eligible_actions`, `reason_codes`, `guardrails_triggered`, `requires_human_review`, referência de configuração e flags explícitas de não aprovação/contratação. `audit_log_ref` permite localizar o JSONL minimizado. Esses logs são evidência técnica da demo, não trilha de auditoria regulatória completa.
+
+### Fairness, aprovação, pausa e rollback
+
+A revisão mínima de fairness compara por `synthetic_segment` a exposição por Braço, sucesso sintético, acionamento de Guardrails e revisão humana. Não se devem criar ou inferir segmentos protegidos. Diferença sem justificativa, ausência de cobertura, concentração inesperada de exposição ou benefício aparente obtido à custa de Guardrails impede promoção até investigação humana; o MVP não define limiar estatístico de produção.
+
+O ciclo demonstrativo é:
+
+1. versionar schema, catálogo, política, dados e sementes;
+2. validar testes e Golden Set;
+3. comparar múltiplas sementes contra o baseline e revisar uplift, regret, exploração, exposição, Guardrails e fairness disponível;
+4. registrar limitações e obter aprovação humana explícita de produto e risco/compliance simulado;
+5. somente então usar o artefato na demo, sem aprendizado online ou promoção automática.
+
+A política deve ser pausada diante de quebra de contrato, Guardrail contornado, dado proibido, log incompleto, exposição injustificada, regressão no Golden Set ou comportamento adversarial inesperado. O rollback demonstrável consiste em retirar o `policy.json` adaptativo e executar novamente a CLI no Baseline Determinístico padrão; artefatos incompatíveis falham explicitamente, sem fallback silencioso. A causa, versão afetada, decisão humana e versão restaurada devem ser registradas antes de retomar a avaliação.
+
+Métricas atuais incluem uplift sintético, recompensa e regret acumulados, taxa de exploração, exposição por Braço, Guardrails e cobertura de logs. Fairness extensa, delayed rewards complexos, monitoramento de produção e processo regulatório de promoção permanecem fora do MVP.
 
 ## Estrutura do repositório
 
@@ -401,7 +430,8 @@ Próximas entregas recomendadas:
 - [x] implementar avaliação offline reproduzível contra baseline experimental;
 - [x] implementar Thompson Sampling contextual simplificado;
 - [x] registrar a comparação adaptativa em MLflow local;
-- [ ] criar `docs/model-card.md`, `docs/system-card.md` e `docs/lgpd-plan.md`;
+- [x] consolidar no README a governança mínima, a postura simulada de LGPD, o Humano no Loop e o rollback da demo;
+- [ ] evoluir Model Card, System Card e plano LGPD como artefatos separados, sem bloquear o MVP demonstrável;
 - [ ] documentar arquitetura Azure e plano de MLOps;
 - [ ] criar roteiro de demo para Lary.
 
