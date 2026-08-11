@@ -10,6 +10,7 @@ from .audit import LocalAuditPersistence
 from .engine import decide
 from .experiment import DEFAULT_MLFLOW_EXPERIMENT, run_offline_experiment
 from .golden_set import evaluate_golden_set
+from .official_artifacts import validate_official_experiment_artifacts
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -90,6 +91,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Nome do experimento no MLflow.",
     )
     experiment_parser.add_argument(
+        "--omit-evaluation-decisions",
+        action="store_true",
+        help=(
+            "Não publica o log volumoso de decisões; use ao materializar somente "
+            "relatório, política e manifesto derivados aprovados."
+        ),
+    )
+    experiment_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Imprime JSON indentado para leitura humana.",
+    )
+
+    validation_parser = subparsers.add_parser(
+        "validate-experiment-artifacts",
+        help="Valida relatório, política e proveniência oficiais sem baixar a base.",
+    )
+    validation_parser.add_argument(
+        "--artifact-dir",
+        default="artifacts/official-experiment",
+        help="Diretório com report.json, policy.json e provenance.json oficiais.",
+    )
+    validation_parser.add_argument(
         "--pretty",
         action="store_true",
         help="Imprime JSON indentado para leitura humana.",
@@ -152,6 +176,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 horizon=args.horizon,
                 tracking_uri=args.tracking_uri,
                 mlflow_experiment_name=args.mlflow_experiment_name,
+                include_evaluation_decisions=not args.omit_evaluation_decisions,
             )
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             print(f"Erro ao executar experimento: {exc}", file=sys.stderr)
@@ -159,6 +184,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         indent = 2 if args.pretty else None
         print(json.dumps(report, ensure_ascii=False, indent=indent, sort_keys=True))
+        return 0
+
+    if args.command == "validate-experiment-artifacts":
+        try:
+            summary = validate_official_experiment_artifacts(args.artifact_dir)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Erro ao validar artefatos oficiais: {exc}", file=sys.stderr)
+            return 2
+
+        indent = 2 if args.pretty else None
+        print(json.dumps(summary, ensure_ascii=False, indent=indent, sort_keys=True))
         return 0
 
     if args.command == "evaluate-golden-set":

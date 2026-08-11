@@ -12,6 +12,7 @@ from typing import Any
 
 SOURCE_DATASET = "bank_marketing_public_proxy"
 SOURCE_VERSION = "UCI dataset 222 / bank-full.csv"
+SOURCE_URL = "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip"
 SCHEMA_VERSION = "bank_marketing_prepared_v0.1"
 
 _REQUIRED_COLUMNS = {"contact", "campaign", "pdays", "previous", "poutcome", "y"}

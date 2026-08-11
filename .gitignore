@@ -5,7 +5,11 @@ __pycache__/
 .ruff_cache/
 .venv/
 logs/
-artifacts/
+artifacts/*
+!artifacts/official-experiment/
+!artifacts/official-experiment/report.json
+!artifacts/official-experiment/policy.json
+!artifacts/official-experiment/provenance.json
 mlflow.db
 mlflow.db-*
 mlartifacts/

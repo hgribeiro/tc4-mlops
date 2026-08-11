@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
-from .bank_marketing import PreparedBankMarketing, prepare_bank_marketing
+from .bank_marketing import PreparedBankMarketing, SOURCE_URL, prepare_bank_marketing
 
 EXPERIMENT_SCHEMA_VERSION = "offline_bandit_experiment_v0.1"
 POLICY_ARTIFACT_SCHEMA_VERSION = "adaptive_policy_artifact_v0.1"
@@ -105,6 +105,7 @@ def run_offline_experiment(
     horizon: int,
     tracking_uri: str | None = None,
     mlflow_experiment_name: str = DEFAULT_MLFLOW_EXPERIMENT,
+    include_evaluation_decisions: bool = True,
 ) -> dict[str, Any]:
     """Compare a fixed baseline with contextual Thompson Sampling.
 
@@ -123,7 +124,12 @@ def run_offline_experiment(
         raise ValueError("the prepared dataset must contain at least one row")
 
     seed_runs = [
-        _run_seed(prepared, seed=seed, horizon=horizon)
+        _run_seed(
+            prepared,
+            seed=seed,
+            horizon=horizon,
+            record_decisions=include_evaluation_decisions,
+        )
         for seed in seeds
     ]
     experiment_ref = _experiment_ref(prepared, seeds, horizon)
@@ -140,10 +146,20 @@ def run_offline_experiment(
         json.dumps(policy, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    with (destination / "evaluation_decisions.jsonl").open("w", encoding="utf-8") as log:
-        for seed_run in seed_runs:
-            for decision in seed_run.decisions:
-                log.write(json.dumps(decision, ensure_ascii=False, sort_keys=True) + "\n")
+    # Local import keeps the validator independent while avoiding a module cycle:
+    # official_artifacts validates the public experiment schema constants.
+    from .official_artifacts import write_official_provenance_manifest
+
+    write_official_provenance_manifest(destination, report, policy)
+    if include_evaluation_decisions:
+        with (destination / "evaluation_decisions.jsonl").open(
+            "w", encoding="utf-8"
+        ) as log:
+            for seed_run in seed_runs:
+                for decision in seed_run.decisions:
+                    log.write(
+                        json.dumps(decision, ensure_ascii=False, sort_keys=True) + "\n"
+                    )
 
     if tracking_uri is not None:
         _track_with_mlflow(
@@ -151,6 +167,7 @@ def run_offline_experiment(
             destination,
             tracking_uri=tracking_uri,
             experiment_name=mlflow_experiment_name,
+            include_evaluation_decisions=include_evaluation_decisions,
         )
     return report
 
@@ -161,6 +178,7 @@ def _track_with_mlflow(
     *,
     tracking_uri: str,
     experiment_name: str,
+    include_evaluation_decisions: bool,
 ) -> None:
     """Persist the public experiment contract as one isolated MLflow run."""
 
@@ -226,9 +244,13 @@ def _track_with_mlflow(
                     client.log_metric(run_id, f"{policy}_exposure.{action}", float(exposure))
 
             client.log_artifact(run_id, str(artifact_dir / "report.json"), "evaluation")
-            client.log_artifact(
-                run_id, str(artifact_dir / "evaluation_decisions.jsonl"), "evaluation"
-            )
+            client.log_artifact(run_id, str(artifact_dir / "provenance.json"), "evaluation")
+            if include_evaluation_decisions:
+                client.log_artifact(
+                    run_id,
+                    str(artifact_dir / "evaluation_decisions.jsonl"),
+                    "evaluation",
+                )
             client.log_artifact(run_id, str(artifact_dir / "policy.json"), "policy")
             client.set_terminated(run_id, status="FINISHED")
         except Exception:
@@ -250,7 +272,11 @@ def _local_mlflow_artifact_location(tracking_uri: str) -> str | None:
 
 
 def _run_seed(
-    prepared: PreparedBankMarketing, *, seed: int, horizon: int
+    prepared: PreparedBankMarketing,
+    *,
+    seed: int,
+    horizon: int,
+    record_decisions: bool = True,
 ) -> SeedRun:
     rng = random.Random(seed)
     posteriors: dict[str, dict[str, Posterior]] = {}
@@ -317,18 +343,35 @@ def _run_seed(
         if len(eligible) > 1:
             context_posteriors[adaptive_action].update(adaptive_outcome)
 
-        decisions.extend(
-            [
-                _audit_decision(
-                    seed, step, "baseline", BASELINE_POLICY_VERSION,
-                    context, baseline_action, eligible, guardrails, baseline_outcome, False
-                ),
-                _audit_decision(
-                    seed, step, "adaptive", ADAPTIVE_POLICY_VERSION,
-                    context, adaptive_action, eligible, guardrails, adaptive_outcome, exploration
-                ),
-            ]
-        )
+        if record_decisions:
+            decisions.extend(
+                [
+                    _audit_decision(
+                        seed,
+                        step,
+                        "baseline",
+                        BASELINE_POLICY_VERSION,
+                        context,
+                        baseline_action,
+                        eligible,
+                        guardrails,
+                        baseline_outcome,
+                        False,
+                    ),
+                    _audit_decision(
+                        seed,
+                        step,
+                        "adaptive",
+                        ADAPTIVE_POLICY_VERSION,
+                        context,
+                        adaptive_action,
+                        eligible,
+                        guardrails,
+                        adaptive_outcome,
+                        exploration,
+                    ),
+                ]
+            )
 
     return SeedRun(
         metrics={
@@ -544,10 +587,16 @@ def _build_report(
         "dataset": {
             "source_dataset": prepared.metadata["source_dataset"],
             "source_version": prepared.metadata["source_version"],
+            "source_url": SOURCE_URL,
+            "source_file": prepared.metadata["source_file"],
             "source_sha256": prepared.metadata["source_sha256"],
             "row_count": prepared.metadata["row_count"],
+            "preparation_schema_version": prepared.metadata["schema_version"],
             "feature_columns": prepared.metadata["feature_columns"],
             "excluded_columns": prepared.metadata["excluded_columns"],
+            "temporal_leakage_columns": prepared.metadata[
+                "temporal_leakage_columns"
+            ],
         },
         "metrics": {
             "baseline_reward_mean": statistics.fmean(baseline),

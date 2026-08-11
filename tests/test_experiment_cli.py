@@ -75,9 +75,25 @@ class ExperimentCliContractTest(unittest.TestCase):
         report_path = tmp_path / "run" / "report.json"
         policy_path = tmp_path / "run" / "policy.json"
         decisions_path = tmp_path / "run" / "evaluation_decisions.jsonl"
+        provenance_path = tmp_path / "run" / "provenance.json"
         self.assertTrue(report_path.exists())
         self.assertTrue(policy_path.exists())
         self.assertTrue(decisions_path.exists())
+        self.assertTrue(provenance_path.exists())
+
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            provenance["schema_version"],
+            "official_experiment_provenance_v0.1",
+        )
+        self.assertEqual(provenance["source"]["sha256"], report["dataset"]["source_sha256"])
+        self.assertEqual(provenance["experiment"]["seeds"], report["seeds"])
+        self.assertEqual(provenance["experiment"]["horizon_per_seed"], 400)
+        self.assertFalse(provenance["source"]["raw_data_versioned"])
+        self.assertTrue(provenance["preparation"]["temporal_leakage_excluded"])
+        self.assertEqual(
+            set(provenance["artifacts"]), {"policy.json", "report.json"}
+        )
 
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
         self.assertEqual(policy["policy_version"], "contextual_thompson_sampling_v0.1")
@@ -128,7 +144,11 @@ class ExperimentCliContractTest(unittest.TestCase):
         self.assertEqual(artifact_paths, {"evaluation", "policy"})
         self.assertEqual(
             {artifact.path for artifact in client.list_artifacts(run.info.run_id, "evaluation")},
-            {"evaluation/evaluation_decisions.jsonl", "evaluation/report.json"},
+            {
+                "evaluation/evaluation_decisions.jsonl",
+                "evaluation/provenance.json",
+                "evaluation/report.json",
+            },
         )
         self.assertEqual(
             {artifact.path for artifact in client.list_artifacts(run.info.run_id, "policy")},
@@ -150,6 +170,45 @@ class ExperimentCliContractTest(unittest.TestCase):
         self.assertTrue(all("eligible_actions" in item for item in decisions))
         self.assertTrue(all(item["selected_action"] in item["eligible_actions"] for item in decisions))
         self.assertTrue(all(item["audit_event_id"] for item in decisions))
+
+    def test_publication_mode_omits_large_decision_log_but_keeps_provenance(self):
+        tmp_path = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(REPO_ROOT / "src")
+        output_dir = tmp_path / "published"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "responsible_next_step",
+                "experiment",
+                "--input",
+                str(FIXTURE),
+                "--output-dir",
+                str(output_dir),
+                "--seeds",
+                "11,29,47,71,97",
+                "--horizon",
+                "20",
+                "--tracking-uri",
+                f"sqlite:///{(tmp_path / 'mlflow.db').resolve()}",
+                "--omit-evaluation-decisions",
+            ],
+            cwd=REPO_ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((output_dir / "evaluation_decisions.jsonl").exists())
+        self.assertTrue((output_dir / "report.json").exists())
+        self.assertTrue((output_dir / "policy.json").exists())
+        self.assertTrue((output_dir / "provenance.json").exists())
 
     def test_same_configuration_is_deterministic_and_guardrails_limit_exploration(self):
         tmp_path = Path(tempfile.mkdtemp())

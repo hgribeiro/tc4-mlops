@@ -1,0 +1,254 @@
+{
+  "actions": [
+    "simulate_vehicle_secured_loan",
+    "simulate_home_equity",
+    "simulate_investment_secured_loan",
+    "educational_content_secured_credit",
+    "request_documents",
+    "route_to_specialist",
+    "no_offer_now"
+  ],
+  "adaptive_strategy": "contextual Thompson Sampling with Beta(1, 1) priors",
+  "baseline_strategy": "fixed educational content with safe eligible fallback",
+  "context_features": [
+    "collateral_type",
+    "channel",
+    "synthetic_segment",
+    "journey_stage"
+  ],
+  "dataset": {
+    "excluded_columns": [
+      "age",
+      "balance",
+      "day",
+      "default",
+      "duration",
+      "education",
+      "housing",
+      "job",
+      "loan",
+      "marital",
+      "month"
+    ],
+    "feature_columns": [
+      "contact_channel_proxy",
+      "contact_repetition_count",
+      "days_since_previous_contact",
+      "previous_contact_count",
+      "previous_outcome"
+    ],
+    "preparation_schema_version": "bank_marketing_prepared_v0.1",
+    "row_count": 45211,
+    "source_dataset": "bank_marketing_public_proxy",
+    "source_file": "bank-full.csv",
+    "source_sha256": "d1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d",
+    "source_url": "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip",
+    "source_version": "UCI dataset 222 / bank-full.csv",
+    "temporal_leakage_columns": [
+      "duration"
+    ]
+  },
+  "experiment_ref": "exp_3262a1a08f36dfc3",
+  "experiment_schema_version": "offline_bandit_experiment_v0.1",
+  "guardrail_order": "eligible actions are computed before policy selection",
+  "horizon_per_seed": 45211,
+  "limitations": [
+    "Bank Marketing has no randomized multi-arm counterfactual outcomes.",
+    "Rewards and secured-loan contexts are synthetic and reproducible, not causal banking evidence.",
+    "This experiment does not approve, price, contract, or recommend real credit."
+  ],
+  "metrics": {
+    "adaptive_cumulative_regret_mean": 59.674,
+    "adaptive_cumulative_reward_mean": 35947.4,
+    "adaptive_exposure": {
+      "educational_content_secured_credit": 35530.8,
+      "no_offer_now": 1500.6,
+      "request_documents": 6653.6,
+      "route_to_specialist": 144.2,
+      "simulate_home_equity": 3.8,
+      "simulate_investment_secured_loan": 0.8,
+      "simulate_vehicle_secured_loan": 1377.2
+    },
+    "adaptive_reward_mean": 35947.4,
+    "baseline_cumulative_reward_mean": 30513.2,
+    "baseline_exposure": {
+      "educational_content_secured_credit": 43749.0,
+      "no_offer_now": 1462.0,
+      "request_documents": 0.0,
+      "route_to_specialist": 0.0,
+      "simulate_home_equity": 0.0,
+      "simulate_investment_secured_loan": 0.0,
+      "simulate_vehicle_secured_loan": 0.0
+    },
+    "baseline_reward_mean": 30513.2,
+    "exploration_rate_mean": 0.002226336601979474,
+    "uplift_mean": 5434.2,
+    "uplift_stddev": 34.458090486850836
+  },
+  "reward_contract": {
+    "coefficient_reference": "docs/experiments/offline-bandit.md",
+    "not_causal_evidence": true,
+    "not_click_optimized": true,
+    "observed_proxy_target_used_only_by_environment": "y",
+    "simulator_parameters": {
+      "awareness_education": 0.78,
+      "awareness_other": 0.1,
+      "default": 0.03,
+      "documentation_education": 0.16,
+      "documentation_other": 0.04,
+      "documentation_request_documents": 0.82,
+      "documentation_route_to_specialist": 0.48,
+      "guarded_no_offer_now": 0.8,
+      "home_other": 0.28,
+      "home_specialist": 0.82,
+      "investment_other": 0.25,
+      "investment_specialist": 0.8,
+      "maximum_probability": 0.95,
+      "minimum_probability": 0.01,
+      "observed_target_increment": 0.06,
+      "vehicle_other": 0.14,
+      "vehicle_simulation": 0.86
+    },
+    "simulator_version": "synthetic_reward_v0.1",
+    "type": "binary synthetic qualified-journey outcome"
+  },
+  "runs": [
+    {
+      "adaptive_cumulative_regret": 53.03,
+      "adaptive_exposure": {
+        "educational_content_secured_credit": 35524,
+        "no_offer_now": 1500,
+        "request_documents": 6659,
+        "route_to_specialist": 148,
+        "simulate_home_equity": 2,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 1378
+      },
+      "adaptive_reward": 35834,
+      "baseline_exposure": {
+        "educational_content_secured_credit": 43749,
+        "no_offer_now": 1462,
+        "request_documents": 0,
+        "route_to_specialist": 0,
+        "simulate_home_equity": 0,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 0
+      },
+      "baseline_reward": 30415,
+      "exploration_rate": 0.0020800475439438615,
+      "seed": 11,
+      "uplift": 5419
+    },
+    {
+      "adaptive_cumulative_regret": 61.35999999999997,
+      "adaptive_exposure": {
+        "educational_content_secured_credit": 35534,
+        "no_offer_now": 1496,
+        "request_documents": 6641,
+        "route_to_specialist": 158,
+        "simulate_home_equity": 4,
+        "simulate_investment_secured_loan": 1,
+        "simulate_vehicle_secured_loan": 1377
+      },
+      "adaptive_reward": 36042,
+      "baseline_exposure": {
+        "educational_content_secured_credit": 43749,
+        "no_offer_now": 1462,
+        "request_documents": 0,
+        "route_to_specialist": 0,
+        "simulate_home_equity": 0,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 0
+      },
+      "baseline_reward": 30626,
+      "exploration_rate": 0.0021486205398980546,
+      "seed": 29,
+      "uplift": 5416
+    },
+    {
+      "adaptive_cumulative_regret": 70.78,
+      "adaptive_exposure": {
+        "educational_content_secured_credit": 35539,
+        "no_offer_now": 1506,
+        "request_documents": 6648,
+        "route_to_specialist": 133,
+        "simulate_home_equity": 7,
+        "simulate_investment_secured_loan": 1,
+        "simulate_vehicle_secured_loan": 1377
+      },
+      "adaptive_reward": 35969,
+      "baseline_exposure": {
+        "educational_content_secured_credit": 43749,
+        "no_offer_now": 1462,
+        "request_documents": 0,
+        "route_to_specialist": 0,
+        "simulate_home_equity": 0,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 0
+      },
+      "baseline_reward": 30501,
+      "exploration_rate": 0.0026514891768954717,
+      "seed": 47,
+      "uplift": 5468
+    },
+    {
+      "adaptive_cumulative_regret": 57.52000000000003,
+      "adaptive_exposure": {
+        "educational_content_secured_credit": 35532,
+        "no_offer_now": 1499,
+        "request_documents": 6654,
+        "route_to_specialist": 148,
+        "simulate_home_equity": 2,
+        "simulate_investment_secured_loan": 1,
+        "simulate_vehicle_secured_loan": 1375
+      },
+      "adaptive_reward": 35755,
+      "baseline_exposure": {
+        "educational_content_secured_credit": 43749,
+        "no_offer_now": 1462,
+        "request_documents": 0,
+        "route_to_specialist": 0,
+        "simulate_home_equity": 0,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 0
+      },
+      "baseline_reward": 30367,
+      "exploration_rate": 0.0021943358705341838,
+      "seed": 71,
+      "uplift": 5388
+    },
+    {
+      "adaptive_cumulative_regret": 55.68,
+      "adaptive_exposure": {
+        "educational_content_secured_credit": 35525,
+        "no_offer_now": 1502,
+        "request_documents": 6666,
+        "route_to_specialist": 134,
+        "simulate_home_equity": 4,
+        "simulate_investment_secured_loan": 1,
+        "simulate_vehicle_secured_loan": 1379
+      },
+      "adaptive_reward": 36137,
+      "baseline_exposure": {
+        "educational_content_secured_credit": 43749,
+        "no_offer_now": 1462,
+        "request_documents": 0,
+        "route_to_specialist": 0,
+        "simulate_home_equity": 0,
+        "simulate_investment_secured_loan": 0,
+        "simulate_vehicle_secured_loan": 0
+      },
+      "baseline_reward": 30657,
+      "exploration_rate": 0.002057189878625797,
+      "seed": 97,
+      "uplift": 5480
+    }
+  ],
+  "seeds": [
+    11,
+    29,
+    47,
+    71,
+    97
+  ]
+}

@@ -188,7 +188,7 @@ O projeto adota princípios de finalidade, necessidade, minimização, transpar�
 
 A entrada deve conter somente os campos sintéticos permitidos em [`docs/data/synthetic-schema.md`](docs/data/synthetic-schema.md). O log persiste contexto minimizado, IDs sintéticos, versão da política, Braço selecionado e elegível, Reason Codes, Guardrails e indicação de revisão humana; campos proibidos não devem ser retidos.
 
-A retenção é local e demonstrativa: `logs/`, `artifacts/`, bancos e artefatos do MLflow ficam fora do Git. Não existe descarte automático nem política corporativa de retenção. O operador da demo deve usar diretório temporário e excluir esses artefatos ao encerrar a avaliação; qualquer retenção além da sessão exige finalidade, prazo e responsável definidos antes da coleta.
+A retenção é local e demonstrativa: `logs/`, dados brutos, bancos e artefatos do MLflow ficam fora do Git. Apenas relatório, política e manifesto derivados aprovados em `artifacts/official-experiment/` são versionados, sem registros por cliente. Não existe descarte automático nem política corporativa de retenção. O operador da demo deve usar diretório temporário e excluir os demais artefatos ao encerrar a avaliação; qualquer retenção além da sessão exige finalidade, prazo e responsável definidos antes da coleta.
 
 ### Guardrails, Humano no Loop e auditoria
 
@@ -408,14 +408,15 @@ O experimento offline usa a mesma preparação pública, um simulador de recompe
 ```bash
 PYTHONPATH=src python -m responsible_next_step experiment \
   --input data/kaggle/raw/bank-marketing/bank-full.csv \
-  --output-dir artifacts/experiment \
+  --output-dir artifacts/official-experiment \
   --seeds 11,29,47,71,97 \
-  --horizon 1000 \
+  --horizon 45211 \
   --tracking-uri sqlite:///mlflow.db \
+  --omit-evaluation-decisions \
   --pretty
 ```
 
-São gerados `report.json`, `policy.json` e `evaluation_decisions.jsonl`. A mesma execução cria um run no experimento `responsible-next-step-offline` do MLflow local. O run registra metadados da base, algoritmo, baseline, priors, horizonte, seeds, recompensas, uplift, regret, exploração e exposição por Braço; o resumo, o log de avaliação e a política versionada ficam disponíveis como artefatos.
+A execução oficial percorre as **45.211 linhas** em cada uma das cinco seeds e publica somente [`report.json`](artifacts/official-experiment/report.json), [`policy.json`](artifacts/official-experiment/policy.json) e [`provenance.json`](artifacts/official-experiment/provenance.json). O manifesto registra URL e SHA-256 da fonte, preparação sem `duration`, configuração, seeds, horizonte, revisão de cobertura e hashes dos dois artefatos derivados. A base bruta, o tracking MLflow e logs volumosos permanecem fora do Git. Remova `--omit-evaluation-decisions` em execuções locais quando o log auditável por decisão for necessário.
 
 Para abrir a interface local no diretório raiz do repositório:
 
@@ -423,7 +424,7 @@ Para abrir a interface local no diretório raiz do repositório:
 mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 ```
 
-Depois, acesse <http://127.0.0.1:5000>. `mlflow.db`, `mlartifacts/`, `mlruns/` e os artefatos locais do experimento estão excluídos do Git. Para isolar outra execução, informe uma URI SQLite diferente, por exemplo `sqlite:////tmp/responsible-next-step/mlflow.db`.
+Depois, acesse <http://127.0.0.1:5000>. `mlflow.db`, `mlartifacts/`, `mlruns/`, dados brutos e logs locais estão excluídos do Git. A única exceção é o conjunto derivado aprovado em `artifacts/official-experiment/`. Para isolar outra execução, informe uma URI SQLite diferente, por exemplo `sqlite:////tmp/responsible-next-step/mlflow.db`.
 
 O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e Guardrails.
 
@@ -431,9 +432,15 @@ A Bank Marketing não contém recompensas contrafactuais por Braço. Portanto, o
 
 ## Resultados reproduzíveis
 
-Uma execução local com a fixture de quatro registros, horizonte de 400 decisões por seed e seeds `11,29,47` gerou os resultados previamente salvos em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). No simulador documentado, o baseline obteve recompensa média de **206,67** e o Thompson Sampling, **303,67**: uplift absoluto médio de **97,00** (aproximadamente **46,9%** sobre o baseline), desvio-padrão do uplift de **6,53**, regret acumulado médio de **17,49** e exploração média de **8,22%**. O uplift foi positivo nas três seeds declaradas: respectivamente **89**, **97** e **105**, sem escolher apenas a melhor execução.
+A evidência oficial versionada foi gerada da Bank Marketing completa, com SHA-256 da fonte `d1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d`, seeds `11,29,47,71,97` e horizonte de 45.211 decisões por seed. Os números para gráficos estão no [`report.json`](artifacts/official-experiment/report.json); a revisão encontrou os nove contextos sintéticos esperados e exposição adaptativa em todos os sete Braços. Valide schemas, cobertura e hashes sem rede nem base bruta:
 
-Esses números medem uma **recompensa binária simulada de avanço qualificado** sob coeficientes definidos pelo laboratório. Não são taxa de conversão observada, Proposta Qualificada Simulada, delayed reward real, evidência causal ou previsão de desempenho bancário. A execução com a base completa deve ser refeita antes da apresentação e interpretada com as mesmas limitações.
+```bash
+PYTHONPATH=src python -m responsible_next_step validate-experiment-artifacts \
+  --artifact-dir artifacts/official-experiment \
+  --pretty
+```
+
+Esses resultados medem uma **recompensa binária simulada de avanço qualificado** sob coeficientes definidos pelo laboratório. São sintéticos, offline e não causais: não são taxa de conversão observada, Proposta Qualificada Simulada, delayed reward real ou previsão de desempenho bancário. A fixture de quatro registros permanece apenas para testes rápidos e não é evidência da apresentação.
 
 ## Mapa dos entregáveis oficiais
 
@@ -453,7 +460,7 @@ O PDF oficial simplificado organiza a entrega nas etapas 0–8. Esta tabela apon
 
 ## Roteiro da demo
 
-O roteiro final, com timebox de **4min50s**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). Relatório e política completos são gerados localmente em `artifacts/experiment/` pelo comando documentado e permanecem fora do Git.
+O roteiro final, com timebox de **4min50s**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). O relatório, a política e o manifesto oficiais da base completa estão versionados em `artifacts/official-experiment/`; dados brutos e logs de execução não estão.
 
 ## Qualidade de engenharia
 

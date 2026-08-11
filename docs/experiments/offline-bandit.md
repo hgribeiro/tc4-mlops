@@ -12,28 +12,37 @@ A Bank Marketing fornece apenas features públicas minimizadas e o target `y` co
 
 ```bash
 PYTHONPATH=src python -m responsible_next_step experiment \
-  --input tests/fixtures/bank-full-small.csv \
-  --output-dir artifacts/experiment \
+  --input data/kaggle/raw/bank-marketing/bank-full.csv \
+  --output-dir artifacts/official-experiment \
   --seeds 11,29,47,71,97 \
-  --horizon 1000 \
+  --horizon 45211 \
   --tracking-uri sqlite:///mlflow.db \
+  --omit-evaluation-decisions \
   --pretty
 ```
 
-A execução gera:
+A publicação oficial gera:
 
 - `report.json`: configuração, linhagem, métricas agregadas e resultados por seed;
 - `policy.json`: versão, schema, Braços, contexto, priors e posteriors da última seed declarada;
-- `evaluation_decisions.jsonl`: log auditável minimizado de cada decisão do baseline e da política adaptativa;
+- `provenance.json`: fonte, hash, preparação, configuração, cobertura e hashes dos artefatos;
 - um run no experimento MLflow `responsible-next-step-offline`.
 
-O run registra base/versão/hash, seeds, horizonte, baseline, algoritmo, priors, métricas comparativas e exposição por Braço. `report.json` e `evaluation_decisions.jsonl` são artefatos de avaliação; `policy.json` é o artefato leve e versionado da Política Adaptativa. A UI local pode ser aberta com:
+O run registra base/versão/hash, seeds, horizonte, baseline, algoritmo, priors, métricas comparativas e exposição por Braço. A opção `--omit-evaluation-decisions` evita publicar ou versionar o log volumoso; sem ela, execuções locais também produzem `evaluation_decisions.jsonl`. Somente os três JSON derivados aprovados em `artifacts/official-experiment/` entram no Git. A UI local pode ser aberta com:
 
 ```bash
 mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 ```
 
-O estado local (`mlflow.db`, `mlartifacts/` e `mlruns/`) não deve ser versionado.
+O estado local (`mlflow.db`, `mlartifacts/` e `mlruns/`) e a base bruta não devem ser versionados. O conjunto oficial pode ser validado sem download ou rede:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step validate-experiment-artifacts \
+  --artifact-dir artifacts/official-experiment \
+  --pretty
+```
+
+O validador confirma schemas atuais, hashes, 45.211 linhas, cinco seeds, horizonte, exclusão de `duration`, cobertura de contextos/Braços e classificação sintética, offline e não causal.
 
 ## Contexto sintético
 

@@ -1,0 +1,173 @@
+{
+  "artifacts": {
+    "policy.json": {
+      "media_type": "application/json",
+      "sha256": "ef52293e7fad6ef6460cf1b2597de3095fcaa0ecda736f955d68e3bee20156b0"
+    },
+    "report.json": {
+      "media_type": "application/json",
+      "sha256": "8bda63f481d0224165d146e5861e2fc91aaf4ad492b1f7544c3d4022712566de"
+    }
+  },
+  "coverage_review": {
+    "actions_with_low_adaptive_exposure": [
+      "simulate_home_equity",
+      "simulate_investment_secured_loan"
+    ],
+    "actions_without_adaptive_exposure": [],
+    "adaptive_actions_exposed": [
+      "simulate_vehicle_secured_loan",
+      "simulate_home_equity",
+      "simulate_investment_secured_loan",
+      "educational_content_secured_credit",
+      "request_documents",
+      "route_to_specialist",
+      "no_offer_now"
+    ],
+    "anomalies": [
+      "Baixa exposição adaptativa média (< 5 por seed): simulate_home_equity=3.8",
+      "Baixa exposição adaptativa média (< 5 por seed): simulate_investment_secured_loan=0.8"
+    ],
+    "anomaly_review": "anomalies_documented",
+    "context_count": 9,
+    "contexts_observed": [
+      "home|hybrid|digital_simple|simulation",
+      "home|hybrid|documentation_needed|documentation",
+      "home|hybrid|education_first|awareness",
+      "investment|specialist|digital_simple|simulation",
+      "investment|specialist|documentation_needed|documentation",
+      "investment|specialist|education_first|awareness",
+      "vehicle|superapp|digital_simple|simulation",
+      "vehicle|superapp|documentation_needed|documentation",
+      "vehicle|superapp|education_first|awareness"
+    ],
+    "eligible_actions_observed": [
+      "simulate_vehicle_secured_loan",
+      "simulate_home_equity",
+      "simulate_investment_secured_loan",
+      "educational_content_secured_credit",
+      "request_documents",
+      "route_to_specialist",
+      "no_offer_now"
+    ],
+    "expected_baseline_structural_zeros": [
+      "simulate_vehicle_secured_loan",
+      "simulate_home_equity",
+      "simulate_investment_secured_loan",
+      "request_documents",
+      "route_to_specialist"
+    ],
+    "notes": [
+      "Zeros do baseline fora de conteúdo educativo e no_offer_now são esperados pela estratégia fixa.",
+      "Baixa exposição de simulações reflete a raridade desses contextos públicos e a convergência da política; deve aparecer nos gráficos, não ser interpretada como eficácia real.",
+      "Contextos e recompensas de Empréstimos com Garantia são sintéticos; cobertura não implica evidência causal."
+    ],
+    "status": "reviewed"
+  },
+  "evidence_classification": {
+    "causal": false,
+    "offline": true,
+    "real_credit_evidence": false,
+    "synthetic": true
+  },
+  "experiment": {
+    "actions": [
+      "simulate_vehicle_secured_loan",
+      "simulate_home_equity",
+      "simulate_investment_secured_loan",
+      "educational_content_secured_credit",
+      "request_documents",
+      "route_to_specialist",
+      "no_offer_now"
+    ],
+    "adaptive_policy_version": "contextual_thompson_sampling_v0.1",
+    "baseline_policy_version": "fixed_global_education_v0.1",
+    "context_features": [
+      "collateral_type",
+      "channel",
+      "synthetic_segment",
+      "journey_stage"
+    ],
+    "experiment_ref": "exp_3262a1a08f36dfc3",
+    "horizon_per_seed": 45211,
+    "policy_schema_version": "adaptive_policy_artifact_v0.1",
+    "report_schema_version": "offline_bandit_experiment_v0.1",
+    "reward_contract": {
+      "coefficient_reference": "docs/experiments/offline-bandit.md",
+      "not_causal_evidence": true,
+      "not_click_optimized": true,
+      "observed_proxy_target_used_only_by_environment": "y",
+      "simulator_parameters": {
+        "awareness_education": 0.78,
+        "awareness_other": 0.1,
+        "default": 0.03,
+        "documentation_education": 0.16,
+        "documentation_other": 0.04,
+        "documentation_request_documents": 0.82,
+        "documentation_route_to_specialist": 0.48,
+        "guarded_no_offer_now": 0.8,
+        "home_other": 0.28,
+        "home_specialist": 0.82,
+        "investment_other": 0.25,
+        "investment_specialist": 0.8,
+        "maximum_probability": 0.95,
+        "minimum_probability": 0.01,
+        "observed_target_increment": 0.06,
+        "vehicle_other": 0.14,
+        "vehicle_simulation": 0.86
+      },
+      "simulator_version": "synthetic_reward_v0.1",
+      "type": "binary synthetic qualified-journey outcome"
+    },
+    "seeds": [
+      11,
+      29,
+      47,
+      71,
+      97
+    ]
+  },
+  "limitations": [
+    "Bank Marketing has no randomized multi-arm counterfactual outcomes.",
+    "Rewards and secured-loan contexts are synthetic and reproducible, not causal banking evidence.",
+    "This experiment does not approve, price, contract, or recommend real credit."
+  ],
+  "preparation": {
+    "excluded_columns": [
+      "age",
+      "balance",
+      "day",
+      "default",
+      "duration",
+      "education",
+      "housing",
+      "job",
+      "loan",
+      "marital",
+      "month"
+    ],
+    "feature_columns": [
+      "contact_channel_proxy",
+      "contact_repetition_count",
+      "days_since_previous_contact",
+      "previous_contact_count",
+      "previous_outcome"
+    ],
+    "preparation_seed": 11,
+    "schema_version": "bank_marketing_prepared_v0.1",
+    "temporal_leakage_columns": [
+      "duration"
+    ],
+    "temporal_leakage_excluded": true
+  },
+  "schema_version": "official_experiment_provenance_v0.1",
+  "source": {
+    "canonical_url": "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip",
+    "dataset": "bank_marketing_public_proxy",
+    "file_name": "bank-full.csv",
+    "raw_data_versioned": false,
+    "row_count": 45211,
+    "sha256": "d1513ec63b385506f7cfce9f2c5caa9fe99e7ba4e8c3fa264b3aaf0f849ed32d",
+    "version": "UCI dataset 222 / bank-full.csv"
+  }
+}
