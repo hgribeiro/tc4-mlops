@@ -4,6 +4,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+presentation/node_modules/
+presentation/dist/
+presentation/test-results/
+presentation/playwright-report/
 logs/
 artifacts/*
 !artifacts/official-experiment/

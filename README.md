@@ -458,6 +458,20 @@ O PDF oficial simplificado organiza a entrega nas etapas 0–8. Esta tabela apon
 | 7 — MLOps | MLflow local, geração de `report.json`/`policy.json` e rollback documentado | `mlflow ui --backend-store-uri sqlite:////tmp/rns-mlflow.db --port 5000` |
 | 8 — Demo Day | roteiro de até cinco minutos e contingência versionados | Revisão de [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md) |
 
+## Apresentação offline
+
+O deck Reveal.js em português fica em [`presentation/`](presentation/). O fluxo principal tem 11 slides para **4min50s**, speaker notes (`S`), três gráficos Plotly derivados automaticamente do relatório oficial, dois diagramas Mermaid e cinco slides de apêndice. O build 16:9 empacota Reveal.js, Plotly, Mermaid, estilos e os três artefatos oficiais; nenhum recurso de runtime depende de CDN.
+
+```bash
+cd presentation
+npm ci
+npx playwright install chromium  # somente na primeira execução
+npm test
+npm run build
+```
+
+Abra `presentation/dist/index.html` em Chrome/Edge atual, inclusive sem rede. `npm test` valida o build e o contrato do relatório, abre o artefato final por `file://` em Chromium, renderiza gráficos/diagramas, navega offline e rejeita requisições HTTP(S). `dist/`, `node_modules/` e resultados do Playwright não são versionados.
+
 ## Roteiro da demo
 
 O roteiro final, com timebox de **4min50s**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). O relatório, a política e o manifesto oficiais da base completa estão versionados em `artifacts/official-experiment/`; dados brutos e logs de execução não estão.
