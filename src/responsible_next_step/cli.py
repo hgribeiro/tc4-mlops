@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from .audit import LocalAuditPersistence
 from .engine import decide
 from .experiment import DEFAULT_MLFLOW_EXPERIMENT, run_offline_experiment
 from .golden_set import evaluate_golden_set
@@ -129,7 +130,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
             decision = decide(
                 payload,
-                Path(args.audit_log_dir),
+                LocalAuditPersistence(args.audit_log_dir),
                 policy_mode=args.policy,
                 policy_artifact=policy_artifact,
             )

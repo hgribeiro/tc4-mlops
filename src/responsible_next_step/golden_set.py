@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping
 
 from . import engine
+from .audit import LocalAuditPersistence
 
 REPORT_SCHEMA_VERSION = "golden_set_evaluation_report_v0.1"
 REQUIRED_CASE_FIELDS = {
@@ -103,9 +104,10 @@ def evaluate_golden_set(
     path = Path(golden_set_path)
     cases = _load_cases(path)
     results: List[Dict[str, Any]] = []
+    audit_persistence = LocalAuditPersistence(audit_log_dir)
 
     for evaluation_case in cases:
-        decision = engine.decide(evaluation_case["context"], Path(audit_log_dir))
+        decision = engine.decide(evaluation_case["context"], audit_persistence)
         failures = _evaluate_case(evaluation_case, decision)
         results.append(
             {

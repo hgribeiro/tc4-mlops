@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from .adaptive_policy import parse_adaptive_policy
+from .audit import AuditPersistence
 from .experiment import ACTIONS
 
 POLICY_VERSION = "baseline_deterministic_v0.1"
@@ -111,12 +110,12 @@ class Selection:
 
 def decide(
     context: Mapping[str, Any],
-    audit_log_dir: Path,
+    audit_persistence: AuditPersistence,
     *,
     policy_mode: str = "baseline",
     policy_artifact: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    """Decide the responsible next step and append a minimized audit log."""
+    """Decide the responsible next step and persist its minimized audit record."""
     guardrails = _evaluate_guardrails(context)
     baseline_selection = _select_action(context, guardrails)
     selection = baseline_selection
@@ -154,8 +153,7 @@ def decide(
 
     decision_id = f"dec_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    audit_log_ref = _append_audit_log(
-        audit_log_dir=audit_log_dir,
+    audit_record = _build_audit_record(
         decision_id=decision_id,
         decided_at=now,
         context=context,
@@ -164,6 +162,7 @@ def decide(
         policy_version=policy_version,
         config_ref=config_ref,
     )
+    audit_log_ref = audit_persistence.persist(audit_record)
 
     return {
         "decision_id": decision_id,
@@ -354,8 +353,7 @@ def _eligible_actions_for_context(context: Mapping[str, Any]) -> List[str]:
     return _ordered_subset(actions, CANONICAL_ACTIONS)
 
 
-def _append_audit_log(
-    audit_log_dir: Path,
+def _build_audit_record(
     decision_id: str,
     decided_at: str,
     context: Mapping[str, Any],
@@ -363,13 +361,8 @@ def _append_audit_log(
     guardrails: List[str],
     policy_version: str,
     config_ref: str,
-) -> Path:
-    event_timestamp = str(context.get("event_timestamp") or decided_at)
-    date_part = event_timestamp[:10] if len(event_timestamp) >= 10 else decided_at[:10]
-    audit_log_dir.mkdir(parents=True, exist_ok=True)
-    audit_path = audit_log_dir / f"{date_part}.jsonl"
-
-    record = {
+) -> Dict[str, Any]:
+    return {
         "decision_id": decision_id,
         "request_id": str(context.get("request_id", "")),
         "logged_at": decided_at,
@@ -390,9 +383,6 @@ def _append_audit_log(
         "not_simulated_qualified_proposal": True,
         "requires_formal_credit_analysis": True,
     }
-    with audit_path.open("a", encoding="utf-8") as audit_file:
-        audit_file.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
-    return audit_path
 
 
 def _adaptive_reason_codes(
