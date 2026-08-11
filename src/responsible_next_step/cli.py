@@ -36,6 +36,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Diretório onde o log auditável minimizado será gravado.",
     )
     decide_parser.add_argument(
+        "--policy",
+        choices=("baseline", "adaptive"),
+        default="baseline",
+        help="Política explícita de decisão (padrão retrocompatível: baseline).",
+    )
+    decide_parser.add_argument(
+        "--policy-artifact",
+        help="Artefato JSON versionado, obrigatório quando --policy adaptive.",
+    )
+    decide_parser.add_argument(
         "--pretty",
         action="store_true",
         help="Imprime JSON indentado para leitura humana.",
@@ -92,7 +102,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.command == "decide":
         try:
             payload = _load_json(args.input)
-            decision = decide(payload, Path(args.audit_log_dir))
+            policy_artifact = (
+                _load_json(args.policy_artifact) if args.policy_artifact else None
+            )
+            decision = decide(
+                payload,
+                Path(args.audit_log_dir),
+                policy_mode=args.policy,
+                policy_artifact=policy_artifact,
+            )
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             print(f"Erro ao processar decisão: {exc}", file=sys.stderr)
             return 2

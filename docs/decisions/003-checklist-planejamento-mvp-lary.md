@@ -147,6 +147,8 @@ O projeto seguirá uma sequência incremental:
 - [x] Incluir `guardrails_triggered`.
 - [x] Gerar log auditável por decisão.
 - [x] Criar pelo menos um exemplo executável.
+- [x] Permitir seleção explícita entre Baseline Determinístico e Política Adaptativa pela mesma CLI.
+- [x] Validar artefato adaptativo e falhar explicitamente sem desativar Guardrails.
 
 ### 3.9 Governança e documentação obrigatória
 
@@ -183,7 +185,7 @@ O projeto seguirá uma sequência incremental:
 - [x] Mostrar log auditável.
 - [x] Mostrar reason codes.
 - [x] Mostrar versão da política.
-- [ ] Mostrar diferença entre baseline e política adaptativa.
+- [x] Mostrar diferença entre baseline e política adaptativa pela CLI e `policy_version` auditável.
 - [ ] Preparar plano de contingência caso demo ao vivo falhe.
 
 ## 4. Ordem recomendada de execução

@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
+from .adaptive_policy import parse_adaptive_policy
+from .experiment import ACTIONS
+
 POLICY_VERSION = "baseline_deterministic_v0.1"
 DECISION_TYPE = "responsible_next_step"
 
@@ -16,15 +19,7 @@ VALID_RISK_LEVELS = {"low", "medium", "high", "critical"}
 VALID_CONFIDENCE = {"low", "medium", "high"}
 EXCESSIVE_CONTACT_LIMIT = 4
 
-CANONICAL_ACTIONS = [
-    "simulate_vehicle_secured_loan",
-    "simulate_home_equity",
-    "simulate_investment_secured_loan",
-    "educational_content_secured_credit",
-    "request_documents",
-    "route_to_specialist",
-    "no_offer_now",
-]
+CANONICAL_ACTIONS = list(ACTIONS)
 
 MINIMIZED_CONTEXT_FIELDS = [
     "schema_version",
@@ -114,10 +109,49 @@ class Selection:
     requires_human_review: bool
 
 
-def decide(context: Mapping[str, Any], audit_log_dir: Path) -> Dict[str, Any]:
+def decide(
+    context: Mapping[str, Any],
+    audit_log_dir: Path,
+    *,
+    policy_mode: str = "baseline",
+    policy_artifact: Mapping[str, Any] | None = None,
+) -> Dict[str, Any]:
     """Decide the responsible next step and append a minimized audit log."""
     guardrails = _evaluate_guardrails(context)
-    selection = _select_action(context, guardrails)
+    baseline_selection = _select_action(context, guardrails)
+    selection = baseline_selection
+    policy_version = POLICY_VERSION
+    config_ref = "docs/product/offer-arms.md#baseline-deterministico-inicial"
+
+    if policy_mode == "adaptive":
+        if policy_artifact is None:
+            raise ValueError("--policy adaptive requer --policy-artifact")
+        adaptive_policy = parse_adaptive_policy(policy_artifact)
+        selected_action = adaptive_policy.select(
+            context, baseline_selection.eligible_actions
+        )
+        requires_human_review = _requires_human_review(
+            selected_action, context, baseline_selection
+        )
+        selection = Selection(
+            action=selected_action,
+            eligible_actions=baseline_selection.eligible_actions,
+            reason_codes=_adaptive_reason_codes(
+                selected_action,
+                context,
+                baseline_selection,
+                guardrails,
+                requires_human_review,
+            ),
+            requires_human_review=requires_human_review,
+        )
+        policy_version = adaptive_policy.policy_version
+        config_ref = str(policy_artifact.get("experiment_ref"))
+    elif policy_mode != "baseline":
+        raise ValueError(f"modo de política desconhecido: {policy_mode!r}")
+    elif policy_artifact is not None:
+        raise ValueError("--policy-artifact só pode ser usado com --policy adaptive")
+
     decision_id = f"dec_{uuid.uuid4().hex[:12]}"
     now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     audit_log_ref = _append_audit_log(
@@ -127,6 +161,8 @@ def decide(context: Mapping[str, Any], audit_log_dir: Path) -> Dict[str, Any]:
         context=context,
         selection=selection,
         guardrails=guardrails,
+        policy_version=policy_version,
+        config_ref=config_ref,
     )
 
     return {
@@ -135,7 +171,7 @@ def decide(context: Mapping[str, Any], audit_log_dir: Path) -> Dict[str, Any]:
         "decision_type": DECISION_TYPE,
         "selected_action": selection.action,
         "eligible_actions": selection.eligible_actions,
-        "policy_version": POLICY_VERSION,
+        "policy_version": policy_version,
         "reason_codes": selection.reason_codes,
         "requires_human_review": selection.requires_human_review,
         "guardrails_triggered": guardrails,
@@ -206,7 +242,7 @@ def _select_action(context: Mapping[str, Any], guardrails: List[str]) -> Selecti
         "invalid_synthetic_risk_level",
         "invalid_policy_confidence",
     }
-    if critical_guardrails.intersection(guardrails):
+    if guardrails:
         return Selection(
             action="no_offer_now",
             eligible_actions=["no_offer_now"],
@@ -325,6 +361,8 @@ def _append_audit_log(
     context: Mapping[str, Any],
     selection: Selection,
     guardrails: List[str],
+    policy_version: str,
+    config_ref: str,
 ) -> Path:
     event_timestamp = str(context.get("event_timestamp") or decided_at)
     date_part = event_timestamp[:10] if len(event_timestamp) >= 10 else decided_at[:10]
@@ -335,7 +373,7 @@ def _append_audit_log(
         "decision_id": decision_id,
         "request_id": str(context.get("request_id", "")),
         "logged_at": decided_at,
-        "policy_version": POLICY_VERSION,
+        "policy_version": policy_version,
         "selected_action": selection.action,
         "eligible_actions": selection.eligible_actions,
         "reason_codes": selection.reason_codes,
@@ -343,7 +381,7 @@ def _append_audit_log(
         "requires_human_review": selection.requires_human_review,
         "context_minimized": _minimize_context(context),
         "dropped_prohibited_fields_count": _count_prohibited_fields(context),
-        "config_ref": "docs/product/offer-arms.md#baseline-deterministico-inicial",
+        "config_ref": config_ref,
         "environment": "local_demo",
         "not_credit_approval": True,
         "not_credit_contracting": True,
@@ -355,6 +393,69 @@ def _append_audit_log(
     with audit_path.open("a", encoding="utf-8") as audit_file:
         audit_file.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
     return audit_path
+
+
+def _adaptive_reason_codes(
+    action: str,
+    context: Mapping[str, Any],
+    baseline_selection: Selection,
+    guardrails: List[str],
+    requires_human_review: bool,
+) -> List[str]:
+    if guardrails or len(baseline_selection.eligible_actions) == 1:
+        action_reasons = baseline_selection.reason_codes
+    else:
+        action_reasons = {
+            "simulate_vehicle_secured_loan": [
+                "vehicle_collateral_anchor",
+                "adaptive_simulation_selected",
+            ],
+            "simulate_home_equity": [
+                "home_equity_requires_guidance",
+                "adaptive_simulation_selected",
+            ],
+            "simulate_investment_secured_loan": [
+                "investment_collateral_candidate",
+                "adaptive_simulation_selected",
+            ],
+            "educational_content_secured_credit": [
+                "education_before_simulation",
+                "responsible_personalization",
+            ],
+            "request_documents": ["documentation_required"],
+            "route_to_specialist": ["specialist_required", "human_in_the_loop"],
+            "no_offer_now": ["safe_no_offer_selected"],
+        }[action]
+
+    review_reasons: List[str] = []
+    if requires_human_review:
+        review_reasons.append("human_in_the_loop")
+    if context.get("synthetic_risk_level") == "high":
+        review_reasons.append("high_synthetic_risk")
+    if context.get("policy_confidence") == "low":
+        review_reasons.append("low_policy_confidence")
+    if context.get("collateral_complexity") == "high":
+        review_reasons.append("collateral_complexity")
+    return _unique(
+        action_reasons
+        + review_reasons
+        + ["adaptive_policy_selection", "eligible_after_guardrails"]
+    )
+
+
+def _requires_human_review(
+    action: str, context: Mapping[str, Any], baseline_selection: Selection
+) -> bool:
+    if action == "no_offer_now":
+        return False
+    if action == "route_to_specialist":
+        return True
+    if baseline_selection.requires_human_review:
+        return True
+    return bool(context.get("human_review_hint")) or (
+        context.get("collateral_type") == "home"
+        and action in {"simulate_home_equity", "request_documents"}
+    )
 
 
 def _minimize_context(context: Mapping[str, Any]) -> Dict[str, Any]:

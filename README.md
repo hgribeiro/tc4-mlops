@@ -198,7 +198,7 @@ Documentos essenciais:
 - opcional: ambiente virtual local;
 - Kaggle CLI ou download direto da UCI para dados públicos, apenas quando os dados forem necessários.
 
-A primeira interface executável é uma CLI Python. Ela recebe um **Cliente Sintético** em JSON, aplica guardrails, usa um baseline determinístico inicial e grava log auditável minimizado. O MLflow é usado apenas pelo comando de experimento.
+A primeira interface executável é uma CLI Python. Ela recebe um **Cliente Sintético** em JSON, aplica Guardrails e grava log auditável minimizado. Sem opções adicionais, usa o Baseline Determinístico retrocompatível; também aceita explicitamente uma Política Adaptativa gerada pelo experimento. O MLflow é usado apenas pelo comando de experimento.
 
 ### Executar a primeira decisão demonstrável
 
@@ -241,6 +241,23 @@ PYTHONPATH=src python -m responsible_next_step decide \
 ```
 
 A saída inclui `decision_id`, `request_id`, `selected_action`, `policy_version`, `reason_codes`, `requires_human_review`, `guardrails_triggered`, `audit_log_ref` e flags explícitas de que a decisão **não é aprovação**, **não é contratação**, **não define taxa** e **não define limite real**.
+
+### Decidir com a Política Adaptativa
+
+Após gerar `policy.json` pelo comando `experiment`, use a mesma interface pública:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step decide \
+  --input examples/synthetic-customers/vehicle-simple.json \
+  --policy adaptive \
+  --policy-artifact artifacts/experiment/policy.json \
+  --audit-log-dir logs/decisions \
+  --pretty
+```
+
+A CLI valida schema, versão da política, catálogo de Braços, definição de contexto, priors, posteriors, seed e declaração obrigatória de Guardrails. Os Guardrails são aplicados antes da amostragem Thompson Sampling; portanto, a política recebe somente os Braços já considerados elegíveis e seguros. Contextos críticos continuam restritos a `no_offer_now`.
+
+O modo adaptativo adota **falha explícita**, sem fallback silencioso: artefato ausente, malformado ou incompatível encerra o comando com status `2` e não grava decisão. Para fallback operacional seguro, execute novamente sem `--policy adaptive`; o padrão documentado permanece o Baseline Determinístico. Informar `--policy-artifact` no modo baseline também é rejeitado para impedir que uma configuração seja ignorada silenciosamente.
 
 ### Baixar a base pública
 

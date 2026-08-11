@@ -111,6 +111,12 @@ Cada combinação de contexto e Braço elegível mantém posterior Beta independ
 4. observa-se a recompensa binária simulada;
 5. atualiza-se `alpha` em caso de sucesso ou `beta` em caso de insucesso.
 
+### Uso do artefato na decisão demonstrável
+
+O `policy.json` pode ser carregado pelo comando público `decide` com `--policy adaptive --policy-artifact <caminho>`. Antes do uso, a CLI valida schema, versão, Braços, contexto, priors, posteriors, seed e as declarações de segurança. A decisão aplica os Guardrails responsáveis da CLI primeiro e amostra somente entre os Braços resultantes como elegíveis. O `policy_version` do artefato é preservado tanto na resposta quanto no log auditável.
+
+Artefatos ausentes, malformados ou incompatíveis falham explicitamente com status `2`; não há fallback silencioso nem desativação de Guardrails. O fallback seguro documentado é uma nova execução no modo baseline, que permanece o padrão quando `--policy` não é informado. O carregamento do artefato não realiza aprendizado online nem promove políticas automaticamente.
+
 ## Métricas
 
 O relatório inclui, por seed e em agregado:
@@ -126,4 +132,4 @@ A recompensa representa avanço qualificado sintético da jornada, mas não é c
 
 ## Não-objetivos
 
-Ficam fora deste experimento: delayed rewards complexos, eventos censurados, fairness detalhada, integração do artefato adaptativo ao comando `decide`, tracking remoto e qualquer alegação de prontidão regulada. Esses itens são tratados separadamente no backlog realinhado.
+Ficam fora deste experimento: delayed rewards complexos, eventos censurados, fairness detalhada, tracking remoto, aprendizado online durante a decisão, promoção automática de políticas e qualquer alegação de prontidão regulada. Esses itens são tratados separadamente no backlog realinhado.

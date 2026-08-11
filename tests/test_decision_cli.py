@@ -56,7 +56,7 @@ def minimal_customer(**overrides):
 
 
 class DecisionCliContractTest(unittest.TestCase):
-    def run_cli(self, payload):
+    def run_cli(self, payload, *extra_args, expected_returncode=0):
         tmp_path = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
         input_path = tmp_path / "customer.json"
@@ -75,6 +75,7 @@ class DecisionCliContractTest(unittest.TestCase):
                 str(input_path),
                 "--audit-log-dir",
                 str(audit_dir),
+                *extra_args,
             ],
             cwd=REPO_ROOT,
             env=env,
@@ -83,8 +84,50 @@ class DecisionCliContractTest(unittest.TestCase):
             stderr=subprocess.PIPE,
             check=False,
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.returncode, expected_returncode, result.stderr)
+        if expected_returncode != 0:
+            return result, tmp_path
         return json.loads(result.stdout), tmp_path
+
+    def write_adaptive_artifact(self, tmp_path, **overrides):
+        context_key = "vehicle|superapp|digital_simple|simulation"
+        artifact = {
+            "schema_version": "adaptive_policy_artifact_v0.1",
+            "policy_version": "contextual_thompson_sampling_demo_v1",
+            "experiment_ref": "exp_test_001",
+            "training_seed": 47,
+            "actions": [
+                "simulate_vehicle_secured_loan",
+                "simulate_home_equity",
+                "simulate_investment_secured_loan",
+                "educational_content_secured_credit",
+                "request_documents",
+                "route_to_specialist",
+                "no_offer_now",
+            ],
+            "context_features": [
+                "collateral_type",
+                "channel",
+                "synthetic_segment",
+                "journey_stage",
+            ],
+            "context_key_separator": "|",
+            "priors": {"alpha": 1.0, "beta": 1.0},
+            "posteriors": {
+                context_key: {
+                    "simulate_vehicle_secured_loan": {"alpha": 1000.0, "beta": 1.0},
+                    "educational_content_secured_credit": {"alpha": 1.0, "beta": 1000.0},
+                    "request_documents": {"alpha": 1.0, "beta": 1000.0},
+                    "no_offer_now": {"alpha": 1.0, "beta": 1000.0},
+                }
+            },
+            "guardrails_required_before_selection": True,
+            "not_credit_approval": True,
+        }
+        artifact.update(overrides)
+        artifact_path = tmp_path / "policy.json"
+        artifact_path.write_text(json.dumps(artifact), encoding="utf-8")
+        return artifact_path
 
     def test_cli_returns_auditable_responsible_next_step_for_vehicle_customer(self):
         decision, tmp_path = self.run_cli(minimal_customer())
@@ -121,6 +164,32 @@ class DecisionCliContractTest(unittest.TestCase):
         self.assertEqual(audit_record["selected_action"], "simulate_vehicle_secured_loan")
         self.assertIn("context_minimized", audit_record)
         self.assertEqual(audit_record["context_minimized"]["collateral_type"], "vehicle")
+
+    def test_valid_adaptive_artifact_selects_only_an_eligible_action_and_is_audited(self):
+        tmp_path = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
+        artifact_path = self.write_adaptive_artifact(tmp_path)
+
+        decision, _ = self.run_cli(
+            minimal_customer(),
+            "--policy",
+            "adaptive",
+            "--policy-artifact",
+            str(artifact_path),
+        )
+
+        self.assertEqual(decision["selected_action"], "simulate_vehicle_secured_loan")
+        self.assertIn(decision["selected_action"], decision["eligible_actions"])
+        self.assertEqual(
+            decision["policy_version"], "contextual_thompson_sampling_demo_v1"
+        )
+        self.assertIn("adaptive_policy_selection", decision["reason_codes"])
+        self.assertEqual(decision["guardrails_triggered"], [])
+        audit_record = json.loads(
+            Path(decision["audit_log_ref"]).read_text(encoding="utf-8").strip()
+        )
+        self.assertEqual(audit_record["policy_version"], decision["policy_version"])
+        self.assertEqual(audit_record["selected_action"], decision["selected_action"])
 
     def test_documented_vehicle_example_file_runs_end_to_end(self):
         example_path = REPO_ROOT / "examples" / "synthetic-customers" / "vehicle-simple.json"
@@ -215,6 +284,101 @@ class DecisionCliContractTest(unittest.TestCase):
         self.assertEqual(audit_record["dropped_prohibited_fields_count"], 2)
         self.assertNotIn("email", audit_record["context_minimized"])
         self.assertNotIn("cpf", audit_record["context_minimized"])
+
+    def test_adaptive_policy_cannot_bypass_a_critical_guardrail(self):
+        tmp_path = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
+        artifact_path = self.write_adaptive_artifact(tmp_path)
+        payload = minimal_customer(known_guardrail_flags=["adversarial_payload"])
+
+        decision, _ = self.run_cli(
+            payload,
+            "--policy",
+            "adaptive",
+            "--policy-artifact",
+            str(artifact_path),
+        )
+
+        self.assertEqual(decision["selected_action"], "no_offer_now")
+        self.assertEqual(decision["eligible_actions"], ["no_offer_now"])
+        self.assertIn("adversarial_payload", decision["guardrails_triggered"])
+        self.assertEqual(
+            decision["policy_version"], "contextual_thompson_sampling_demo_v1"
+        )
+
+    def test_adaptive_policy_preserves_human_review_for_high_risk_context(self):
+        tmp_path = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
+        context_key = "vehicle|superapp|digital_simple|simulation"
+        artifact_path = self.write_adaptive_artifact(
+            tmp_path,
+            posteriors={
+                context_key: {
+                    "educational_content_secured_credit": {
+                        "alpha": 1000.0,
+                        "beta": 1.0,
+                    },
+                    "request_documents": {"alpha": 1.0, "beta": 1000.0},
+                    "route_to_specialist": {"alpha": 1.0, "beta": 1000.0},
+                    "no_offer_now": {"alpha": 1.0, "beta": 1000.0},
+                }
+            },
+        )
+
+        decision, _ = self.run_cli(
+            minimal_customer(synthetic_risk_level="high"),
+            "--policy",
+            "adaptive",
+            "--policy-artifact",
+            str(artifact_path),
+        )
+
+        self.assertEqual(
+            decision["selected_action"], "educational_content_secured_credit"
+        )
+        self.assertTrue(decision["requires_human_review"])
+        self.assertIn("high_synthetic_risk", decision["reason_codes"])
+        self.assertIn("human_in_the_loop", decision["reason_codes"])
+
+    def test_adaptive_policy_rejects_missing_malformed_or_incompatible_artifact(self):
+        result, _ = self.run_cli(
+            minimal_customer(),
+            "--policy",
+            "adaptive",
+            expected_returncode=2,
+        )
+        self.assertIn("requer --policy-artifact", result.stderr)
+
+        tmp_path = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
+        malformed_path = tmp_path / "malformed.json"
+        malformed_path.write_text("{not-json", encoding="utf-8")
+        incompatible_path = self.write_adaptive_artifact(
+            tmp_path, schema_version="adaptive_policy_artifact_v999"
+        )
+        incompatible_path.rename(tmp_path / "incompatible.json")
+        incompatible_path = tmp_path / "incompatible.json"
+        non_finite_path = self.write_adaptive_artifact(
+            tmp_path, priors={"alpha": float("nan"), "beta": 1.0}
+        )
+
+        for artifact_ref in [
+            tmp_path / "missing.json",
+            malformed_path,
+            incompatible_path,
+            non_finite_path,
+        ]:
+            with self.subTest(artifact_ref=artifact_ref):
+                result, _ = self.run_cli(
+                    minimal_customer(),
+                    "--policy",
+                    "adaptive",
+                    "--policy-artifact",
+                    str(artifact_ref),
+                    expected_returncode=2,
+                )
+                self.assertIn("Erro ao processar decisão", result.stderr)
+                self.assertEqual(result.stdout, "")
 
     def test_receivables_are_out_of_mvp_scope(self):
         decision, _ = self.run_cli(
