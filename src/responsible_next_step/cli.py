@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 from .engine import decide
+from .experiment import run_offline_experiment
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +40,38 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Imprime JSON indentado para leitura humana.",
     )
+
+    experiment_parser = subparsers.add_parser(
+        "experiment",
+        help="Compara baseline experimental e Thompson Sampling em ambiente sintético.",
+    )
+    experiment_parser.add_argument(
+        "--input",
+        "-i",
+        required=True,
+        help="Caminho para bank-full.csv ou fixture compatível.",
+    )
+    experiment_parser.add_argument(
+        "--output-dir",
+        default="artifacts/experiment",
+        help="Diretório para relatório, política e log auditável da avaliação.",
+    )
+    experiment_parser.add_argument(
+        "--seeds",
+        default="11,29,47,71,97",
+        help="Seeds inteiras separadas por vírgula; o relatório agrega todas.",
+    )
+    experiment_parser.add_argument(
+        "--horizon",
+        type=int,
+        default=1000,
+        help="Número de decisões avaliadas por seed.",
+    )
+    experiment_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Imprime JSON indentado para leitura humana.",
+    )
     return parser
 
 
@@ -58,8 +91,35 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(json.dumps(decision, ensure_ascii=False, indent=indent, sort_keys=True))
         return 0
 
+    if args.command == "experiment":
+        try:
+            seeds = _parse_seeds(args.seeds)
+            report = run_offline_experiment(
+                args.input,
+                args.output_dir,
+                seeds=seeds,
+                horizon=args.horizon,
+            )
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Erro ao executar experimento: {exc}", file=sys.stderr)
+            return 2
+
+        indent = 2 if args.pretty else None
+        print(json.dumps(report, ensure_ascii=False, indent=indent, sort_keys=True))
+        return 0
+
     parser.error("comando inválido")
     return 2
+
+
+def _parse_seeds(raw: str) -> list[int]:
+    try:
+        seeds = [int(item.strip()) for item in raw.split(",") if item.strip()]
+    except ValueError as exc:
+        raise ValueError("--seeds deve conter inteiros separados por vírgula") from exc
+    if not seeds:
+        raise ValueError("--seeds deve conter ao menos uma seed")
+    return seeds
 
 
 def _load_json(input_ref: str) -> Dict[str, Any]:

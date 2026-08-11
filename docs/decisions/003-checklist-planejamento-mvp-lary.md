@@ -114,24 +114,26 @@ O projeto seguirá uma sequência incremental:
   - [x] inelegível → `no_offer_now`.
 - [x] Registrar versão da política baseline.
 - [x] Gerar logs auditáveis.
-- [ ] Medir conversão/recompensa simulada.
+- [x] Medir recompensa sintética no baseline experimental separado das regras responsáveis da CLI; conversão em Proposta Qualificada Simulada permanece fora deste simulador mínimo.
 
 ### 3.7 Política adaptativa
 
-- [ ] Implementar ou simular Thompson Sampling.
-- [ ] Definir priors por braço.
-- [ ] Definir atualização com feedback observado.
-- [ ] Definir tratamento de delayed rewards.
-- [ ] Definir comportamento para eventos censurados.
-- [ ] Comparar contra baseline.
-- [ ] Documentar Nilos-UCB, UCB ou variação contextual como referência/alternativa.
-- [ ] Calcular métricas:
-  - [ ] recompensa acumulada;
-  - [ ] regret acumulado;
-  - [ ] taxa de exploração;
-  - [ ] exposição por braço;
-  - [ ] conversão qualificada;
-  - [ ] fairness por segmento sintético.
+> Escopo realinhado pela issue #13: delayed rewards complexos, censura, fairness detalhada e alternativas Nilos-UCB/UCB não bloqueiam o aceite oficial atual.
+
+- [x] Implementar ou simular Thompson Sampling.
+- [x] Definir priors por braço.
+- [x] Definir atualização com feedback observado.
+- [ ] Definir tratamento de delayed rewards — fora do aceite oficial atual.
+- [ ] Definir comportamento para eventos censurados — fora do aceite oficial atual.
+- [x] Comparar contra baseline.
+- [ ] Documentar Nilos-UCB, UCB ou variação contextual como referência/alternativa — fora do aceite oficial atual.
+- [x] Calcular métricas:
+  - [x] recompensa acumulada;
+  - [x] regret acumulado;
+  - [x] taxa de exploração;
+  - [x] exposição por braço;
+  - [ ] conversão qualificada — o simulador atual mede avanço qualificado sintético, sem rotulá-lo como Proposta Qualificada Simulada;
+  - [ ] fairness por segmento sintético — fora do aceite oficial atual.
 
 ### 3.8 Interface demonstrável
 

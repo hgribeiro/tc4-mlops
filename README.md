@@ -289,6 +289,23 @@ prepared = prepare_bank_marketing(
 
 `prepared.features` exclui `duration` e as categorias proibidas; `prepared.target` contém o target binário e `prepared.metadata` registra linhagem e reprodutibilidade.
 
+### Comparar baseline experimental e Política Adaptativa
+
+O experimento offline usa a mesma preparação pública, um simulador de recompensa binária transparente, baseline fixo e Thompson Sampling contextual. Guardrails restringem os Braços antes da seleção. Execute com múltiplas seeds:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step experiment \
+  --input data/kaggle/raw/bank-marketing/bank-full.csv \
+  --output-dir artifacts/experiment \
+  --seeds 11,29,47,71,97 \
+  --horizon 1000 \
+  --pretty
+```
+
+São gerados `report.json`, `policy.json` e `evaluation_decisions.jsonl`. O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e guardrails.
+
+A Bank Marketing não contém recompensas contrafactuais por Braço. Portanto, os resultados são **simulados, offline e não causais**; não demonstram eficácia em crédito real. Contexto, coeficientes, priors e limitações estão documentados em [`docs/experiments/offline-bandit.md`](docs/experiments/offline-bandit.md).
+
 ## Qualidade de engenharia
 
 Padrões esperados para implementação futura:
@@ -338,8 +355,8 @@ Próximas entregas recomendadas:
 - [x] implementar baseline determinístico inicial;
 - [x] implementar CLI de decisão;
 - [x] criar testes de aceitação do contrato da CLI;
-- [ ] implementar avaliação offline;
-- [ ] implementar Thompson Sampling contextual simplificado;
+- [x] implementar avaliação offline reproduzível contra baseline experimental;
+- [x] implementar Thompson Sampling contextual simplificado;
 - [ ] criar `docs/model-card.md`, `docs/system-card.md` e `docs/lgpd-plan.md`;
 - [ ] documentar arquitetura Azure e plano de MLOps;
 - [ ] criar roteiro de demo para Lary.
