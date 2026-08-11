@@ -1,0 +1,204 @@
+{
+  "adaptive_policy": {
+    "actions": [
+      "simulate_vehicle_secured_loan",
+      "simulate_home_equity",
+      "simulate_investment_secured_loan",
+      "educational_content_secured_credit",
+      "request_documents",
+      "route_to_specialist",
+      "no_offer_now"
+    ],
+    "context_features": [
+      "collateral_type",
+      "channel",
+      "synthetic_segment",
+      "journey_stage"
+    ],
+    "context_key_separator": "|",
+    "experiment_ref": "exp_0f57dab9e82b384a",
+    "guardrails_required_before_selection": true,
+    "not_credit_approval": true,
+    "policy_version": "contextual_thompson_sampling_v0.1",
+    "posteriors": {
+      "home|hybrid|digital_simple|simulation": {
+        "educational_content_secured_credit": {
+          "alpha": 1.0,
+          "beta": 3.0
+        },
+        "no_offer_now": {
+          "alpha": 1.0,
+          "beta": 4.0
+        },
+        "route_to_specialist": {
+          "alpha": 86.0,
+          "beta": 9.0
+        },
+        "simulate_home_equity": {
+          "alpha": 1.0,
+          "beta": 3.0
+        }
+      },
+      "investment|specialist|documentation_needed|documentation": {
+        "educational_content_secured_credit": {
+          "alpha": 3.0,
+          "beta": 4.0
+        },
+        "no_offer_now": {
+          "alpha": 1.0,
+          "beta": 3.0
+        },
+        "request_documents": {
+          "alpha": 72.0,
+          "beta": 21.0
+        },
+        "route_to_specialist": {
+          "alpha": 1.0,
+          "beta": 3.0
+        }
+      },
+      "vehicle|superapp|documentation_needed|documentation": {
+        "no_offer_now": {
+          "alpha": 1.0,
+          "beta": 1.0
+        }
+      },
+      "vehicle|superapp|education_first|awareness": {
+        "educational_content_secured_credit": {
+          "alpha": 70.0,
+          "beta": 26.0
+        },
+        "no_offer_now": {
+          "alpha": 2.0,
+          "beta": 6.0
+        }
+      }
+    },
+    "priors": {
+      "alpha": 1.0,
+      "beta": 1.0
+    },
+    "schema_version": "adaptive_policy_artifact_v0.1",
+    "training_seed": 47
+  },
+  "scenarios": {
+    "guardrail_sensitive": {
+      "allowed_input_features": [
+        "collateral_type",
+        "channel",
+        "journey_stage",
+        "synthetic_risk_level",
+        "policy_confidence",
+        "engagement_level",
+        "context_completeness",
+        "synthetic_segment",
+        "relationship_tier",
+        "contact_repetition_count",
+        "collateral_detail_status",
+        "collateral_complexity",
+        "risk_communication_available"
+      ],
+      "channel": "superapp",
+      "collateral_complexity": "medium",
+      "collateral_detail_status": "missing",
+      "collateral_type": "vehicle",
+      "contact_repetition_count": 1,
+      "context_completeness": "insufficient",
+      "engagement_level": "low",
+      "event_timestamp": "2026-06-29T12:10:00Z",
+      "human_review_hint": false,
+      "journey_stage": "awareness",
+      "known_guardrail_flags": [],
+      "policy_confidence": "low",
+      "random_seed": 20260629,
+      "relationship_tier": "standard",
+      "request_id": "req_demo_guardrail_001",
+      "risk_communication_available": false,
+      "schema_version": "synthetic_customer_context_v0.1",
+      "source_dataset": "manual_demo",
+      "source_record_ref": null,
+      "synthetic_customer_id": "syn_guardrail_001",
+      "synthetic_risk_level": "critical",
+      "synthetic_segment": "guardrail_sensitive"
+    },
+    "home_complex": {
+      "allowed_input_features": [
+        "collateral_type",
+        "channel",
+        "journey_stage",
+        "synthetic_risk_level",
+        "policy_confidence",
+        "engagement_level",
+        "context_completeness",
+        "synthetic_segment",
+        "relationship_tier",
+        "contact_repetition_count",
+        "collateral_detail_status",
+        "collateral_complexity",
+        "risk_communication_available"
+      ],
+      "channel": "hybrid",
+      "collateral_complexity": "high",
+      "collateral_detail_status": "complete",
+      "collateral_type": "home",
+      "contact_repetition_count": 1,
+      "context_completeness": "sufficient",
+      "engagement_level": "medium",
+      "event_timestamp": "2026-06-29T12:05:00Z",
+      "human_review_hint": true,
+      "journey_stage": "simulation",
+      "known_guardrail_flags": [],
+      "policy_confidence": "low",
+      "random_seed": 20260629,
+      "relationship_tier": "high_relationship",
+      "request_id": "req_demo_home_complex_001",
+      "risk_communication_available": true,
+      "schema_version": "synthetic_customer_context_v0.1",
+      "source_dataset": "manual_demo",
+      "source_record_ref": null,
+      "synthetic_customer_id": "syn_home_001",
+      "synthetic_risk_level": "medium",
+      "synthetic_segment": "collateral_complex"
+    },
+    "vehicle_simple": {
+      "allowed_input_features": [
+        "collateral_type",
+        "channel",
+        "journey_stage",
+        "synthetic_risk_level",
+        "policy_confidence",
+        "engagement_level",
+        "context_completeness",
+        "synthetic_segment",
+        "relationship_tier",
+        "contact_repetition_count",
+        "collateral_detail_status",
+        "collateral_complexity",
+        "risk_communication_available"
+      ],
+      "channel": "superapp",
+      "collateral_complexity": "low",
+      "collateral_detail_status": "complete",
+      "collateral_type": "vehicle",
+      "contact_repetition_count": 1,
+      "context_completeness": "sufficient",
+      "engagement_level": "high",
+      "event_timestamp": "2026-06-29T12:00:00Z",
+      "human_review_hint": false,
+      "journey_stage": "simulation",
+      "known_guardrail_flags": [],
+      "policy_confidence": "high",
+      "random_seed": 20260629,
+      "relationship_tier": "standard",
+      "request_id": "req_demo_vehicle_001",
+      "risk_communication_available": true,
+      "schema_version": "synthetic_customer_context_v0.1",
+      "source_dataset": "manual_demo",
+      "source_record_ref": null,
+      "synthetic_customer_id": "syn_vehicle_001",
+      "synthetic_risk_level": "low",
+      "synthetic_segment": "digital_simple"
+    }
+  },
+  "schema_version": "demo_assets_v0.1"
+}

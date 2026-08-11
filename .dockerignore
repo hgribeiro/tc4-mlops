@@ -1,0 +1,12 @@
+.git
+.venv
+.pytest_cache
+__pycache__
+*.py[cod]
+*.pdf
+*.egg-info
+artifacts
+logs
+mlartifacts
+mlruns
+mlflow.db*

@@ -253,6 +253,34 @@ Documentos essenciais:
 
 A primeira interface executável é uma CLI Python. Ela recebe um **Cliente Sintético** em JSON, aplica Guardrails e grava log auditável minimizado. Sem opções adicionais, usa o Baseline Determinístico retrocompatível; também aceita explicitamente uma Política Adaptativa gerada pelo experimento. O MLflow é usado apenas pelo comando de experimento.
 
+### Executar a API de Demonstração
+
+A superfície HTTP aceita somente os três cenários sintéticos oficiais (`vehicle_simple`, `home_complex` e `guardrail_sensitive`) e a escolha explícita entre `baseline` e `adaptive`. Instale o pacote e inicie localmente:
+
+```bash
+python -m pip install -e '.[test]'
+uvicorn responsible_next_step.api:app --host 127.0.0.1 --port 8000
+```
+
+Em outro terminal, execute uma decisão:
+
+```bash
+curl --fail-with-body http://127.0.0.1:8000/v1/decisions \
+  --header 'Content-Type: application/json' \
+  --data '{"scenario_id":"vehicle_simple","policy_mode":"baseline"}'
+```
+
+`GET /health` informa somente saúde técnica e `GET /ready` informa prontidão, sem expor cenários, política ou auditoria. `ADAPTIVE_ENABLED=false` pausa explicitamente apenas a Política Adaptativa, sem fallback silencioso; `AUDIT_LOG_DIR` configura a persistência local minimizada. Falha de auditoria fecha a requisição com erro de serviço e sem decisão válida.
+
+A mesma aplicação usa `responsible_next_step.api:handler` como adaptação Mangum para Lambda. A imagem canônica Python 3.12 pode ser executada localmente com:
+
+```bash
+docker build -t responsible-next-step-demo .
+docker run --rm -p 8000:8000 responsible-next-step-demo
+```
+
+Esta é uma **API de Demonstração**, não uma API bancária genérica nem uma superfície pronta para produção regulada. Ela não recebe contexto arbitrário ou dados pessoais.
+
 ### Executar a primeira decisão demonstrável
 
 Sem instalar o pacote:
