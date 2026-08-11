@@ -87,22 +87,23 @@ O projeto seguirá uma sequência incremental:
 
 ### 3.5 Golden set
 
-- [ ] Criar `data/golden_set/evaluation_cases.jsonl`.
-- [ ] Incluir pelo menos 20 casos.
-- [ ] Cobrir casos típicos.
-- [ ] Cobrir casos de borda.
-- [ ] Cobrir casos adversariais.
-- [ ] Cobrir casos inelegíveis.
-- [ ] Cobrir cold-start.
-- [ ] Cobrir contexto incompleto.
-- [ ] Cobrir canal inválido.
-- [ ] Cobrir repetição excessiva de oferta.
-- [ ] Cada caso deve conter:
-  - [ ] contexto;
-  - [ ] ação esperada;
-  - [ ] recompensa esperada ou critério de sucesso;
-  - [ ] justificativa;
-  - [ ] critério explícito de pass/fail.
+> Escopo realinhado pela issue #7: o Golden Set oficial foi simplificado para cinco casos representativos. A ampliação para 20 casos e a cobertura isolada de cold-start, canal inválido e repetição excessiva ficam como evolução futura.
+
+- [x] Criar `data/golden_set/evaluation_cases.jsonl`.
+- [x] Incluir cinco casos oficiais.
+- [x] Cobrir veículo digital.
+- [x] Cobrir imóvel complexo.
+- [x] Cobrir contexto incompleto.
+- [x] Cobrir conteúdo educativo.
+- [x] Cobrir caso adversarial/inelegível.
+- [x] Cada caso deve conter:
+  - [x] contexto;
+  - [x] ação esperada;
+  - [x] recompensa esperada ou critério de sucesso;
+  - [x] justificativa;
+  - [x] critério explícito de pass/fail.
+- [x] Executar os cinco casos pelo contrato público do Baseline Determinístico.
+- [x] Reprovar divergências de ação, Guardrails, Reason Codes, revisão humana, contrato ou log auditável.
 
 ### 3.6 Baseline determinístico
 
@@ -211,7 +212,7 @@ Esta decisão será considerada concluída quando:
 - os braços iniciais estiverem definidos;
 - a base pública estiver escolhida e documentada;
 - o schema sintético estiver definido;
-- existir golden set com pelo menos 20 casos;
+- existir Golden Set oficial com cinco casos representativos e avaliação reproduzível;
 - houver baseline e política adaptativa comparáveis;
 - uma decisão puder ser executada e auditada;
 - a narrativa de demo estiver alinhada ao problema de Empréstimos com Garantia.

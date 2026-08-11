@@ -203,9 +203,11 @@ O golden set futuro deve usar este formato mínimo.
 | `expected_guardrails_triggered` | array | Sim | Lista esperada, pode ser vazia. |
 | `expected_requires_human_review` | boolean | Sim | Resultado esperado. |
 | `expected_reason_codes` | array | Sim | Reason codes esperados. |
+| `expected_success_criterion` | string | Sim | Resultado responsável esperado, sem representar aprovação ou contratação. |
+| `justification` | string | Sim | Justificativa humana para a expectativa do caso. |
 | `pass_fail_criteria` | string | Sim | Critério explícito de aceitação. |
 
-O golden set deve cobrir veículo, imóvel, investimentos, educação, documentação, especialista e `no_offer_now`.
+O Golden Set oficial simplificado contém cinco casos: veículo digital, imóvel complexo, contexto incompleto, conteúdo educativo e adversarial/inelegível. Em conjunto, eles exercitam simulação, documentação, especialista, educação e `no_offer_now`; investimentos aparecem no caso educativo sem configurar recomendação de investimento.
 
 ## 11. Campos mínimos de auditoria na saída da decisão
 

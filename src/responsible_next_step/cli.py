@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, Sequence
 
 from .engine import decide
 from .experiment import DEFAULT_MLFLOW_EXPERIMENT, run_offline_experiment
+from .golden_set import evaluate_golden_set
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -92,6 +93,27 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Imprime JSON indentado para leitura humana.",
     )
+
+    golden_set_parser = subparsers.add_parser(
+        "evaluate-golden-set",
+        help="Executa o Baseline Determinístico contra os cinco casos oficiais.",
+    )
+    golden_set_parser.add_argument(
+        "--input",
+        "-i",
+        default="data/golden_set/evaluation_cases.jsonl",
+        help="Caminho para o Golden Set em JSONL.",
+    )
+    golden_set_parser.add_argument(
+        "--audit-log-dir",
+        default="logs/golden-set",
+        help="Diretório dos logs auditáveis gerados durante a avaliação.",
+    )
+    golden_set_parser.add_argument(
+        "--pretty",
+        action="store_true",
+        help="Imprime JSON indentado para leitura humana.",
+    )
     return parser
 
 
@@ -137,6 +159,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         indent = 2 if args.pretty else None
         print(json.dumps(report, ensure_ascii=False, indent=indent, sort_keys=True))
         return 0
+
+    if args.command == "evaluate-golden-set":
+        try:
+            report = evaluate_golden_set(args.input, args.audit_log_dir)
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Erro ao avaliar Golden Set: {exc}", file=sys.stderr)
+            return 2
+
+        indent = 2 if args.pretty else None
+        print(json.dumps(report, ensure_ascii=False, indent=indent, sort_keys=True))
+        return 0 if report["all_passed"] else 1
 
     parser.error("comando inválido")
     return 2

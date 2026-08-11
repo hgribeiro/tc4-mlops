@@ -109,6 +109,7 @@ Documentação principal:
 - [`data/kaggle/README.md`](data/kaggle/README.md): fonte, licença, target, colunas, limitações, download e execução da preparação.
 - [`notebooks/bank-marketing-eda.ipynb`](notebooks/bank-marketing-eda.ipynb): EDA executável e exportação dos artefatos preparados.
 - [`docs/data/synthetic-schema.md`](docs/data/synthetic-schema.md): schema mínimo do Cliente Sintético e dados auxiliares.
+- [`data/golden_set/evaluation_cases.jsonl`](data/golden_set/evaluation_cases.jsonl): cinco casos oficiais de avaliação do Baseline Determinístico.
 
 Boas práticas adotadas:
 
@@ -241,6 +242,19 @@ PYTHONPATH=src python -m responsible_next_step decide \
 ```
 
 A saída inclui `decision_id`, `request_id`, `selected_action`, `policy_version`, `reason_codes`, `requires_human_review`, `guardrails_triggered`, `audit_log_ref` e flags explícitas de que a decisão **não é aprovação**, **não é contratação**, **não define taxa** e **não define limite real**.
+
+### Avaliar o Golden Set oficial
+
+O comando abaixo executa offline os cinco casos versionados pelo mesmo seam público do Baseline Determinístico:
+
+```bash
+PYTHONPATH=src python -m responsible_next_step evaluate-golden-set \
+  --input data/golden_set/evaluation_cases.jsonl \
+  --audit-log-dir logs/golden-set \
+  --pretty
+```
+
+O relatório estruturado mostra pass/fail por caso, resumo agregado e cobertura observada de Braços, Guardrails, Reason Codes e logs auditáveis. Divergências do comportamento esperado, falhas do contrato de saída ou ausência de log reprovam o caso; a CLI retorna status `1` quando algum caso falha e status `2` quando o Golden Set não pode ser validado ou lido.
 
 ### Decidir com a Política Adaptativa
 
@@ -380,7 +394,7 @@ Estado atual:
 
 Próximas entregas recomendadas:
 
-- [ ] criar `data/golden_set/evaluation_cases.jsonl`;
+- [x] criar `data/golden_set/evaluation_cases.jsonl` e avaliação offline dos cinco casos oficiais;
 - [x] implementar baseline determinístico inicial;
 - [x] implementar CLI de decisão;
 - [x] criar testes de aceitação do contrato da CLI;
