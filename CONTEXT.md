@@ -76,6 +76,10 @@ _Avoid_: clique imediato como sucesso final.
 Camada de explicação, consulta documental e apoio à governança. Não escolhe braços, não aprova crédito, não substitui guardrails, não substitui reason codes e não substitui baseline ou política adaptativa.
 _Avoid_: decisor principal, motor de crédito, fonte de política inventada, substituto de auditoria.
 
+**API de Demonstração**:
+Interface pública e temporária que executa o Próximo Passo Responsável apenas para cenários sintéticos oficiais e versionados, preservando Guardrails e auditoria. Não é uma API bancária genérica nem uma superfície pronta para produção.
+_Avoid_: API de crédito, motor de decisão bancária, endpoint de produção, entrada de dados reais.
+
 ## Flagged ambiguities
 
 **Oferta**:
