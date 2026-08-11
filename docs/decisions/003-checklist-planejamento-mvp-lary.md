@@ -166,20 +166,22 @@ O projeto seguirá uma sequência incremental:
 
 ### 3.10 Arquitetura Azure e MLOps
 
-- [ ] Criar `docs/architecture-azure.md`.
-- [ ] Incluir diagrama Mermaid.
-- [ ] Mapear serviços Azure.
+> Escopo realinhado pela issue #12: o contrato oficial pede um ou dois parágrafos de arquitetura-alvo em nuvem no README. Documento separado e diagrama Mermaid permanecem opcionais.
+
+- [ ] Criar `docs/architecture-azure.md` — opcional, fora do aceite oficial atual.
+- [ ] Incluir diagrama Mermaid — opcional, fora do aceite oficial atual.
+- [x] Mapear no README serviços Azure de ingestão, armazenamento, tracking, serving, observabilidade, segredos e identidade.
 - [x] Incluir MLflow local para tracking da comparação adaptativa; Azure ML remoto permanece futuro.
-- [ ] Incluir Azure Key Vault.
-- [ ] Incluir Managed Identity.
-- [ ] Incluir Azure Monitor/Application Insights.
-- [ ] Definir ambientes: local, teste e produção simulada.
-- [ ] Definir aprovação humana antes de promoção de política.
-- [ ] Definir rollback.
+- [x] Incluir Azure Key Vault na arquitetura-alvo.
+- [x] Incluir Managed Identity na arquitetura-alvo.
+- [x] Incluir Azure Monitor/Application Insights na arquitetura-alvo.
+- [x] Definir ambientes: local, teste e produção simulada.
+- [x] Definir aprovação humana antes de promoção de política.
+- [x] Definir rollback.
 
 ### 3.11 Narrativa de demo
 
-- [ ] Criar roteiro da demo.
+- [x] Criar roteiro da demo de até cinco minutos em `docs/demo/roteiro-pitch-5-minutos.md`.
 - [x] Cena 1: cliente digital simples recebe simulação/oferta de veículo.
 - [x] Cena 2: cliente com garantia imóvel ou alta complexidade é roteado para especialista.
 - [x] Cena 3: cliente inelegível/adversarial recebe `no_offer_now` ou conteúdo educativo.
@@ -187,7 +189,7 @@ O projeto seguirá uma sequência incremental:
 - [x] Mostrar reason codes.
 - [x] Mostrar versão da política.
 - [x] Mostrar diferença entre baseline e política adaptativa pela CLI e `policy_version` auditável.
-- [ ] Preparar plano de contingência caso demo ao vivo falhe.
+- [x] Preparar plano de contingência com saídas previamente salvas em `docs/demo/saidas-contingencia.md`.
 
 ## 4. Ordem recomendada de execução
 

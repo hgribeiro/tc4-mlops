@@ -1,6 +1,6 @@
 # Responsible Next Step Lab — MLOps para Empréstimos com Garantia
 
-Plataforma demonstrável de **MLE/MLOps e IA generativa** para decidir o **Próximo Passo Responsável** em jornadas sintéticas de **Empréstimos com Garantia**.
+Laboratório demonstrável de **MLE/MLOps** para decidir o **Próximo Passo Responsável** em jornadas sintéticas de **Empréstimos com Garantia**.
 
 O projeto simula uma plataforma de experimentação adaptativa para a persona **Lary**, CTO da unidade de negócio de Empréstimos com Garantia de um banco digital. A solução compara um baseline determinístico com uma política adaptativa, mantendo governança, explicabilidade, logs auditáveis e limites claros de uso.
 
@@ -11,10 +11,15 @@ O projeto simula uma plataforma de experimentação adaptativa para a persona **
 - [Objetivo](#objetivo)
 - [Escopo do MVP](#escopo-do-mvp)
 - [Arquitetura conceitual](#arquitetura-conceitual)
+- [Arquitetura-alvo Azure](#arquitetura-alvo-azure)
 - [Dados](#dados)
+- [Golden Set oficial](#golden-set-oficial)
 - [MLOps e governança](#mlops-e-governança)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Como começar](#como-começar)
+- [Resultados reproduzíveis](#resultados-reproduzíveis)
+- [Mapa dos entregáveis oficiais](#mapa-dos-entregáveis-oficiais)
+- [Roteiro da demo](#roteiro-da-demo)
 - [Qualidade de engenharia](#qualidade-de-engenharia)
 - [Roadmap](#roadmap)
 - [Limitações e não-objetivos](#limitações-e-não-objetivos)
@@ -100,9 +105,15 @@ Contrato mínimo esperado de uma decisão:
 }
 ```
 
+## Arquitetura-alvo Azure
+
+Em uma implantação-alvo, **Azure Data Factory** faria a ingestão agendada e **Azure Data Lake Storage Gen2** separaria dados brutos, preparados e artefatos sintéticos. **Azure Machine Learning**, com tracking compatível com MLflow, executaria e registraria experimentos; imagens versionadas ficariam no **Azure Container Registry** e a CLI seria empacotada como serviço stateless no **Azure Container Apps**. **Azure Monitor** e **Application Insights** concentrariam métricas, traces e alertas, sempre com logs minimizados.
+
+O laboratório local corresponde ao ambiente de desenvolvimento; um workspace e uma conta de armazenamento isolados formariam o ambiente de teste; uma assinatura separada representaria a **produção simulada**, sem clientes ou crédito reais. **Managed Identity** daria acesso entre serviços e **Azure Key Vault** guardaria segredos, sem credenciais no código. A promoção de um `policy.json` exigiria testes, Golden Set, comparação no MLflow e aprovação humana de produto e risco/compliance simulado. Regressão, quebra de Guardrail ou log incompleto pausaria a política; o rollback removeria a versão adaptativa e restauraria o Baseline Determinístico versionado.
+
 ## Dados
 
-A base pública inicial é **Bank Marketing**, usada apenas como proxy público de resposta a campanha bancária.
+A base pública inicial é **[Bank Marketing no Kaggle](https://www.kaggle.com/datasets/sushant097/bank-marketing-dataset-full)**, usada apenas como proxy público de resposta a campanha bancária. A fonte canônica é o [UCI Machine Learning Repository, dataset 222](https://archive.ics.uci.edu/dataset/222/bank).
 
 Documentação principal:
 
@@ -118,6 +129,18 @@ Boas práticas adotadas:
 - atributos sensíveis, identificadores pessoais, renda real, patrimônio real e regras comerciais privadas são proibidos;
 - enriquecimento sintético deve ser reproduzível por semente aleatória;
 - logs devem seguir minimização de dados.
+
+## Golden Set oficial
+
+Os cinco casos versionados em [`data/golden_set/evaluation_cases.jsonl`](data/golden_set/evaluation_cases.jsonl) verificam o contrato público do Baseline Determinístico. Eles não provam desempenho estatístico; funcionam como casos de aceitação de negócio, segurança e auditoria.
+
+| Caso | Contexto resumido | Próximo passo esperado | Evidência responsável |
+| --- | --- | --- | --- |
+| `vehicle_digital` | Veículo, SuperApp, baixo risco e contexto completo | `simulate_vehicle_secured_loan` | Autosserviço sem revisão humana. |
+| `home_complex` | Imóvel complexo e baixa confiança | `route_to_specialist` | Humano no Loop obrigatório. |
+| `incomplete_context` | Detalhes recuperáveis da garantia ausentes | `request_documents` | Não simula antes de completar o contexto. |
+| `education_first` | Início da jornada e baixa clareza | `educational_content_secured_credit` | Explica antes de simular. |
+| `adversarial_ineligible` | Risco crítico e contexto adversarial | `no_offer_now` | Guardrail bloqueia exposição indevida. |
 
 Estrutura esperada de dados:
 
@@ -374,9 +397,35 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 Depois, acesse <http://127.0.0.1:5000>. `mlflow.db`, `mlartifacts/`, `mlruns/` e os artefatos locais do experimento estão excluídos do Git. Para isolar outra execução, informe uma URI SQLite diferente, por exemplo `sqlite:////tmp/responsible-next-step/mlflow.db`.
 
-O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e guardrails.
+O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e Guardrails.
 
 A Bank Marketing não contém recompensas contrafactuais por Braço. Portanto, os resultados são **simulados, offline e não causais**; não demonstram eficácia em crédito real. Contexto, coeficientes, priors e limitações estão documentados em [`docs/experiments/offline-bandit.md`](docs/experiments/offline-bandit.md).
+
+## Resultados reproduzíveis
+
+Uma execução local com a fixture de quatro registros, horizonte de 400 decisões por seed e seeds `11,29,47` gerou os resultados previamente salvos em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). No simulador documentado, o baseline obteve recompensa média de **206,67** e o Thompson Sampling, **303,67**: uplift absoluto médio de **97,00** (aproximadamente **46,9%** sobre o baseline), desvio-padrão do uplift de **6,53**, regret acumulado médio de **17,49** e exploração média de **8,22%**. O uplift foi positivo nas três seeds declaradas: respectivamente **89**, **97** e **105**, sem escolher apenas a melhor execução.
+
+Esses números medem uma **recompensa binária simulada de avanço qualificado** sob coeficientes definidos pelo laboratório. Não são taxa de conversão observada, Proposta Qualificada Simulada, delayed reward real, evidência causal ou previsão de desempenho bancário. A execução com a base completa deve ser refeita antes da apresentação e interpretada com as mesmas limitações.
+
+## Mapa dos entregáveis oficiais
+
+O PDF oficial simplificado organiza a entrega nas etapas 0–8. Esta tabela aponta a evidência central e o comando de validação sem depender de explicação oral.
+
+| Etapa | Evidência no repositório | Validação principal |
+| --- | --- | --- |
+| 0 — Organização | `README.md`, `pyproject.toml`, `.gitignore`, histórico incremental | `python -m pip install -e . && responsible-next-step --help` |
+| 1 — Kaggle e EDA | link Kaggle acima, `data/kaggle/README.md`, notebook reutilizando o módulo público | `jupyter nbconvert --to notebook --execute notebooks/bank-marketing-eda.ipynb --output bank-marketing-eda.executed.ipynb` |
+| 2 — Preparação | `prepare_bank_marketing`, schema e linhagem sem `duration` | `python -m pytest tests/test_bank_marketing_preparation.py tests/test_bank_marketing_notebook.py` |
+| 3 — Baseline e adaptativo | baseline fixo, Thompson Sampling, priors e comparação multi-seed | `PYTHONPATH=src python -m responsible_next_step experiment --input tests/fixtures/bank-full-small.csv --output-dir /tmp/rns-experiment --seeds 11,29,47 --horizon 400 --tracking-uri sqlite:////tmp/rns-mlflow.db --pretty` |
+| 4 — Avaliação | métricas e Golden Set de cinco casos resumido acima | `PYTHONPATH=src python -m responsible_next_step evaluate-golden-set --input data/golden_set/evaluation_cases.jsonl --audit-log-dir /tmp/rns-golden --pretty` |
+| 5 — Interface | CLI de decisão, Reason Codes, `policy_version`, Guardrails e log | `PYTHONPATH=src python -m responsible_next_step decide --input examples/synthetic-customers/vehicle-simple.json --audit-log-dir /tmp/rns-decisions --pretty` |
+| 6 — Nuvem | dois parágrafos de arquitetura-alvo Azure neste README | Revisão da seção [Arquitetura-alvo Azure](#arquitetura-alvo-azure) |
+| 7 — MLOps | MLflow local, geração de `report.json`/`policy.json` e rollback documentado | `mlflow ui --backend-store-uri sqlite:////tmp/rns-mlflow.db --port 5000` |
+| 8 — Demo Day | roteiro de até cinco minutos e contingência versionados | Revisão de [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md) |
+
+## Roteiro da demo
+
+O roteiro final, com timebox de **4min50s**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). Relatório e política completos são gerados localmente em `artifacts/experiment/` pelo comando documentado e permanecem fora do Git.
 
 ## Qualidade de engenharia
 
@@ -432,8 +481,8 @@ Próximas entregas recomendadas:
 - [x] registrar a comparação adaptativa em MLflow local;
 - [x] consolidar no README a governança mínima, a postura simulada de LGPD, o Humano no Loop e o rollback da demo;
 - [ ] evoluir Model Card, System Card e plano LGPD como artefatos separados, sem bloquear o MVP demonstrável;
-- [ ] documentar arquitetura Azure e plano de MLOps;
-- [ ] criar roteiro de demo para Lary.
+- [x] documentar arquitetura-alvo Azure concisa e plano de MLOps;
+- [x] criar roteiro de demo de até cinco minutos para Lary.
 
 ## Limitações e não-objetivos
 
