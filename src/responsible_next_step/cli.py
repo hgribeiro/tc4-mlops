@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
 from .engine import decide
-from .experiment import run_offline_experiment
+from .experiment import DEFAULT_MLFLOW_EXPERIMENT, run_offline_experiment
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -68,6 +68,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Número de decisões avaliadas por seed.",
     )
     experiment_parser.add_argument(
+        "--tracking-uri",
+        default="sqlite:///mlflow.db",
+        help="Tracking URI local do MLflow (padrão: sqlite:///mlflow.db).",
+    )
+    experiment_parser.add_argument(
+        "--mlflow-experiment-name",
+        default=DEFAULT_MLFLOW_EXPERIMENT,
+        help="Nome do experimento no MLflow.",
+    )
+    experiment_parser.add_argument(
         "--pretty",
         action="store_true",
         help="Imprime JSON indentado para leitura humana.",
@@ -99,6 +109,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 args.output_dir,
                 seeds=seeds,
                 horizon=args.horizon,
+                tracking_uri=args.tracking_uri,
+                mlflow_experiment_name=args.mlflow_experiment_name,
             )
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             print(f"Erro ao executar experimento: {exc}", file=sys.stderr)

@@ -38,6 +38,27 @@ ACTIONS = (
 )
 PRIOR_ALPHA = 1.0
 PRIOR_BETA = 1.0
+DEFAULT_MLFLOW_EXPERIMENT = "responsible-next-step-offline"
+REWARD_SIMULATOR_VERSION = "synthetic_reward_v0.1"
+REWARD_SIMULATOR_PARAMETERS = {
+    "default": 0.03,
+    "guarded_no_offer_now": 0.80,
+    "awareness_education": 0.78,
+    "awareness_other": 0.10,
+    "documentation_request_documents": 0.82,
+    "documentation_route_to_specialist": 0.48,
+    "documentation_education": 0.16,
+    "documentation_other": 0.04,
+    "vehicle_simulation": 0.86,
+    "vehicle_other": 0.14,
+    "home_specialist": 0.82,
+    "home_other": 0.28,
+    "investment_specialist": 0.80,
+    "investment_other": 0.25,
+    "observed_target_increment": 0.06,
+    "minimum_probability": 0.01,
+    "maximum_probability": 0.95,
+}
 
 
 @dataclass(frozen=True)
@@ -82,6 +103,8 @@ def run_offline_experiment(
     *,
     seeds: Sequence[int],
     horizon: int,
+    tracking_uri: str | None = None,
+    mlflow_experiment_name: str = DEFAULT_MLFLOW_EXPERIMENT,
 ) -> dict[str, Any]:
     """Compare a fixed baseline with contextual Thompson Sampling.
 
@@ -121,7 +144,109 @@ def run_offline_experiment(
         for seed_run in seed_runs:
             for decision in seed_run.decisions:
                 log.write(json.dumps(decision, ensure_ascii=False, sort_keys=True) + "\n")
+
+    if tracking_uri is not None:
+        _track_with_mlflow(
+            report,
+            destination,
+            tracking_uri=tracking_uri,
+            experiment_name=mlflow_experiment_name,
+        )
     return report
+
+
+def _track_with_mlflow(
+    report: Mapping[str, Any],
+    artifact_dir: Path,
+    *,
+    tracking_uri: str,
+    experiment_name: str,
+) -> None:
+    """Persist the public experiment contract as one isolated MLflow run."""
+
+    try:
+        from mlflow import MlflowClient
+
+        client = MlflowClient(tracking_uri=tracking_uri)
+        experiment = client.get_experiment_by_name(experiment_name)
+        if experiment is None:
+            experiment_id = client.create_experiment(
+                experiment_name,
+                artifact_location=_local_mlflow_artifact_location(tracking_uri),
+            )
+        else:
+            experiment_id = experiment.experiment_id
+        run = client.create_run(
+            experiment_id,
+            run_name=str(report["experiment_ref"]),
+            tags={
+                "experiment_schema_version": str(report["experiment_schema_version"]),
+                "policy_version": ADAPTIVE_POLICY_VERSION,
+                "synthetic_offline_evaluation": "true",
+                "not_causal_banking_evidence": "true",
+            },
+        )
+        run_id = run.info.run_id
+        try:
+            dataset = report["dataset"]
+            client.log_param(run_id, "algorithm", "contextual_thompson_sampling")
+            client.log_param(run_id, "adaptive_policy_version", ADAPTIVE_POLICY_VERSION)
+            client.log_param(run_id, "baseline_policy_version", BASELINE_POLICY_VERSION)
+            client.log_param(run_id, "baseline_strategy", report["baseline_strategy"])
+            client.log_param(run_id, "prior_alpha", PRIOR_ALPHA)
+            client.log_param(run_id, "prior_beta", PRIOR_BETA)
+            client.log_param(run_id, "seeds", ",".join(str(seed) for seed in report["seeds"]))
+            client.log_param(run_id, "policy_training_seed", report["seeds"][-1])
+            client.log_param(run_id, "horizon_per_seed", report["horizon_per_seed"])
+            client.log_param(run_id, "simulator_version", REWARD_SIMULATOR_VERSION)
+            client.log_param(
+                run_id,
+                "simulator_parameters",
+                json.dumps(REWARD_SIMULATOR_PARAMETERS, sort_keys=True),
+            )
+            client.log_param(run_id, "dataset_source", dataset["source_dataset"])
+            client.log_param(run_id, "dataset_version", dataset["source_version"])
+            client.log_param(run_id, "dataset_sha256", dataset["source_sha256"])
+            client.log_param(run_id, "dataset_row_count", dataset["row_count"])
+
+            metrics = report["metrics"]
+            scalar_metrics = {
+                "baseline_reward": metrics["baseline_reward_mean"],
+                "adaptive_reward": metrics["adaptive_reward_mean"],
+                "uplift": metrics["uplift_mean"],
+                "baseline_cumulative_reward": metrics["baseline_cumulative_reward_mean"],
+                "adaptive_cumulative_reward": metrics["adaptive_cumulative_reward_mean"],
+                "adaptive_cumulative_regret": metrics["adaptive_cumulative_regret_mean"],
+                "exploration_rate": metrics["exploration_rate_mean"],
+            }
+            for name, value in scalar_metrics.items():
+                client.log_metric(run_id, name, float(value))
+            for policy in ("baseline", "adaptive"):
+                for action, exposure in metrics[f"{policy}_exposure"].items():
+                    client.log_metric(run_id, f"{policy}_exposure.{action}", float(exposure))
+
+            client.log_artifact(run_id, str(artifact_dir / "report.json"), "evaluation")
+            client.log_artifact(
+                run_id, str(artifact_dir / "evaluation_decisions.jsonl"), "evaluation"
+            )
+            client.log_artifact(run_id, str(artifact_dir / "policy.json"), "policy")
+            client.set_terminated(run_id, status="FINISHED")
+        except Exception:
+            client.set_terminated(run_id, status="FAILED")
+            raise
+    except Exception as exc:
+        raise ValueError(
+            f"não foi possível registrar o run no MLflow em {tracking_uri!r}: {exc}"
+        ) from exc
+
+
+def _local_mlflow_artifact_location(tracking_uri: str) -> str | None:
+    if not tracking_uri.startswith("sqlite:///"):
+        return None
+    database_path = Path(tracking_uri.removeprefix("sqlite:///"))
+    artifact_dir = database_path.parent / "mlartifacts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    return artifact_dir.resolve().as_uri()
 
 
 def _run_seed(
@@ -274,28 +399,52 @@ def _reward_probability(
 ) -> float:
     """Documented synthetic contract; this is not an observed causal outcome."""
 
-    probability = 0.03
+    parameters = REWARD_SIMULATOR_PARAMETERS
+    probability = parameters["default"]
     if action == "no_offer_now":
-        probability = 0.80 if context.contact_repetition_count >= 10 else 0.03
+        probability = (
+            parameters["guarded_no_offer_now"]
+            if context.contact_repetition_count >= 10
+            else parameters["default"]
+        )
     elif context.journey_stage == "awareness":
-        probability = 0.78 if action == "educational_content_secured_credit" else 0.10
+        probability = (
+            parameters["awareness_education"]
+            if action == "educational_content_secured_credit"
+            else parameters["awareness_other"]
+        )
     elif context.journey_stage == "documentation":
         probability = {
-            "request_documents": 0.82,
-            "route_to_specialist": 0.48,
-            "educational_content_secured_credit": 0.16,
-        }.get(action, 0.04)
+            "request_documents": parameters["documentation_request_documents"],
+            "route_to_specialist": parameters["documentation_route_to_specialist"],
+            "educational_content_secured_credit": parameters["documentation_education"],
+        }.get(action, parameters["documentation_other"])
     elif context.collateral_type == "vehicle":
-        probability = 0.86 if action == "simulate_vehicle_secured_loan" else 0.14
+        probability = (
+            parameters["vehicle_simulation"]
+            if action == "simulate_vehicle_secured_loan"
+            else parameters["vehicle_other"]
+        )
     elif context.collateral_type == "home":
-        probability = 0.82 if action == "route_to_specialist" else 0.28
+        probability = (
+            parameters["home_specialist"]
+            if action == "route_to_specialist"
+            else parameters["home_other"]
+        )
     elif context.collateral_type == "investment":
-        probability = 0.80 if action == "route_to_specialist" else 0.25
+        probability = (
+            parameters["investment_specialist"]
+            if action == "route_to_specialist"
+            else parameters["investment_other"]
+        )
 
     # y is used only inside the outcome environment, never as a decision feature.
     if observed_target and action != "no_offer_now":
-        probability += 0.06
-    return min(max(probability, 0.01), 0.95)
+        probability += parameters["observed_target_increment"]
+    return min(
+        max(probability, parameters["minimum_probability"]),
+        parameters["maximum_probability"],
+    )
 
 
 def _sample_reward(
@@ -388,6 +537,8 @@ def _build_report(
             "observed_proxy_target_used_only_by_environment": "y",
             "not_click_optimized": True,
             "not_causal_evidence": True,
+            "simulator_version": REWARD_SIMULATOR_VERSION,
+            "simulator_parameters": REWARD_SIMULATOR_PARAMETERS,
             "coefficient_reference": "docs/experiments/offline-bandit.md",
         },
         "dataset": {

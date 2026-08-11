@@ -194,10 +194,11 @@ Documentos essenciais:
 ### Pré-requisitos atuais
 
 - Python 3.10+;
+- MLflow, instalado automaticamente com o pacote;
 - opcional: ambiente virtual local;
 - Kaggle CLI ou download direto da UCI para dados públicos, apenas quando os dados forem necessários.
 
-A primeira interface executável é uma CLI Python sem dependências externas. Ela recebe um **Cliente Sintético** em JSON, aplica guardrails, usa um baseline determinístico inicial e grava log auditável minimizado.
+A primeira interface executável é uma CLI Python. Ela recebe um **Cliente Sintético** em JSON, aplica guardrails, usa um baseline determinístico inicial e grava log auditável minimizado. O MLflow é usado apenas pelo comando de experimento.
 
 ### Executar a primeira decisão demonstrável
 
@@ -299,10 +300,21 @@ PYTHONPATH=src python -m responsible_next_step experiment \
   --output-dir artifacts/experiment \
   --seeds 11,29,47,71,97 \
   --horizon 1000 \
+  --tracking-uri sqlite:///mlflow.db \
   --pretty
 ```
 
-São gerados `report.json`, `policy.json` e `evaluation_decisions.jsonl`. O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e guardrails.
+São gerados `report.json`, `policy.json` e `evaluation_decisions.jsonl`. A mesma execução cria um run no experimento `responsible-next-step-offline` do MLflow local. O run registra metadados da base, algoritmo, baseline, priors, horizonte, seeds, recompensas, uplift, regret, exploração e exposição por Braço; o resumo, o log de avaliação e a política versionada ficam disponíveis como artefatos.
+
+Para abrir a interface local no diretório raiz do repositório:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+Depois, acesse <http://127.0.0.1:5000>. `mlflow.db`, `mlartifacts/`, `mlruns/` e os artefatos locais do experimento estão excluídos do Git. Para isolar outra execução, informe uma URI SQLite diferente, por exemplo `sqlite:////tmp/responsible-next-step/mlflow.db`.
+
+O relatório agrega recompensa sintética de avanço qualificado, uplift, regret, exploração e exposição por Braço sem selecionar apenas uma seed favorável. Essa recompensa não é clique nem é contabilizada como Proposta Qualificada Simulada. Cada decisão avaliada registra `policy_version`, conjunto elegível e guardrails.
 
 A Bank Marketing não contém recompensas contrafactuais por Braço. Portanto, os resultados são **simulados, offline e não causais**; não demonstram eficácia em crédito real. Contexto, coeficientes, priors e limitações estão documentados em [`docs/experiments/offline-bandit.md`](docs/experiments/offline-bandit.md).
 
@@ -357,6 +369,7 @@ Próximas entregas recomendadas:
 - [x] criar testes de aceitação do contrato da CLI;
 - [x] implementar avaliação offline reproduzível contra baseline experimental;
 - [x] implementar Thompson Sampling contextual simplificado;
+- [x] registrar a comparação adaptativa em MLflow local;
 - [ ] criar `docs/model-card.md`, `docs/system-card.md` e `docs/lgpd-plan.md`;
 - [ ] documentar arquitetura Azure e plano de MLOps;
 - [ ] criar roteiro de demo para Lary.

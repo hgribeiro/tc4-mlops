@@ -7,13 +7,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from mlflow import MlflowClient
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = REPO_ROOT / "tests" / "fixtures" / "bank-full-small.csv"
 
 
 class ExperimentCliContractTest(unittest.TestCase):
-    def run_experiment(self, output_dir: Path):
+    def run_experiment(self, output_dir: Path, tracking_dir: Path):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(REPO_ROOT / "src")
         result = subprocess.run(
@@ -30,6 +32,8 @@ class ExperimentCliContractTest(unittest.TestCase):
                 "11,29,47",
                 "--horizon",
                 "400",
+                "--tracking-uri",
+                f"sqlite:///{(tracking_dir / 'mlflow.db').resolve()}",
             ],
             cwd=REPO_ROOT,
             env=env,
@@ -45,7 +49,8 @@ class ExperimentCliContractTest(unittest.TestCase):
         tmp_path = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
 
-        report = self.run_experiment(tmp_path / "run")
+        tracking_dir = tmp_path / "mlruns"
+        report = self.run_experiment(tmp_path / "run", tracking_dir)
 
         self.assertEqual(report["experiment_schema_version"], "offline_bandit_experiment_v0.1")
         self.assertEqual(report["seeds"], [11, 29, 47])
@@ -82,6 +87,54 @@ class ExperimentCliContractTest(unittest.TestCase):
         self.assertTrue(policy["posteriors"])
         self.assertIn("experiment_ref", policy)
 
+        client = MlflowClient(
+            tracking_uri=f"sqlite:///{(tracking_dir / 'mlflow.db').resolve()}"
+        )
+        experiment = client.get_experiment_by_name("responsible-next-step-offline")
+        self.assertIsNotNone(experiment)
+        runs = client.search_runs([experiment.experiment_id])
+        self.assertEqual(len(runs), 1)
+        run = runs[0]
+        self.assertEqual(run.data.params["algorithm"], "contextual_thompson_sampling")
+        self.assertEqual(run.data.params["seeds"], "11,29,47")
+        self.assertEqual(run.data.params["policy_training_seed"], "47")
+        self.assertEqual(run.data.params["horizon_per_seed"], "400")
+        self.assertEqual(run.data.params["prior_alpha"], "1.0")
+        self.assertEqual(run.data.params["prior_beta"], "1.0")
+        self.assertEqual(
+            run.data.params["baseline_policy_version"],
+            "fixed_global_education_v0.1",
+        )
+        self.assertEqual(run.data.params["dataset_sha256"], report["dataset"]["source_sha256"])
+        self.assertEqual(run.data.params["simulator_version"], "synthetic_reward_v0.1")
+        self.assertEqual(
+            json.loads(run.data.params["simulator_parameters"]),
+            report["reward_contract"]["simulator_parameters"],
+        )
+        for metric in (
+            "baseline_reward",
+            "adaptive_reward",
+            "uplift",
+            "adaptive_cumulative_regret",
+            "exploration_rate",
+        ):
+            self.assertIn(metric, run.data.metrics)
+        for action in report["actions"]:
+            self.assertIn(f"baseline_exposure.{action}", run.data.metrics)
+            self.assertIn(f"adaptive_exposure.{action}", run.data.metrics)
+        artifact_paths = {
+            artifact.path for artifact in client.list_artifacts(run.info.run_id)
+        }
+        self.assertEqual(artifact_paths, {"evaluation", "policy"})
+        self.assertEqual(
+            {artifact.path for artifact in client.list_artifacts(run.info.run_id, "evaluation")},
+            {"evaluation/evaluation_decisions.jsonl", "evaluation/report.json"},
+        )
+        self.assertEqual(
+            {artifact.path for artifact in client.list_artifacts(run.info.run_id, "policy")},
+            {"policy/policy.json"},
+        )
+
         decisions = [
             json.loads(line)
             for line in decisions_path.read_text(encoding="utf-8").splitlines()
@@ -102,8 +155,8 @@ class ExperimentCliContractTest(unittest.TestCase):
         tmp_path = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp_path, ignore_errors=True)
 
-        first = self.run_experiment(tmp_path / "first")
-        second = self.run_experiment(tmp_path / "second")
+        first = self.run_experiment(tmp_path / "first", tmp_path / "first-mlruns")
+        second = self.run_experiment(tmp_path / "second", tmp_path / "second-mlruns")
 
         self.assertEqual(first, second)
         first_policy = json.loads((tmp_path / "first" / "policy.json").read_text(encoding="utf-8"))

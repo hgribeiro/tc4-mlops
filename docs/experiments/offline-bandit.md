@@ -16,6 +16,7 @@ PYTHONPATH=src python -m responsible_next_step experiment \
   --output-dir artifacts/experiment \
   --seeds 11,29,47,71,97 \
   --horizon 1000 \
+  --tracking-uri sqlite:///mlflow.db \
   --pretty
 ```
 
@@ -23,7 +24,16 @@ A execução gera:
 
 - `report.json`: configuração, linhagem, métricas agregadas e resultados por seed;
 - `policy.json`: versão, schema, Braços, contexto, priors e posteriors da última seed declarada;
-- `evaluation_decisions.jsonl`: log auditável minimizado de cada decisão do baseline e da política adaptativa.
+- `evaluation_decisions.jsonl`: log auditável minimizado de cada decisão do baseline e da política adaptativa;
+- um run no experimento MLflow `responsible-next-step-offline`.
+
+O run registra base/versão/hash, seeds, horizonte, baseline, algoritmo, priors, métricas comparativas e exposição por Braço. `report.json` e `evaluation_decisions.jsonl` são artefatos de avaliação; `policy.json` é o artefato leve e versionado da Política Adaptativa. A UI local pode ser aberta com:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+O estado local (`mlflow.db`, `mlartifacts/` e `mlruns/`) não deve ser versionado.
 
 ## Contexto sintético
 
@@ -116,4 +126,4 @@ A recompensa representa avanço qualificado sintético da jornada, mas não é c
 
 ## Não-objetivos
 
-Ficam fora deste experimento: delayed rewards complexos, eventos censurados, fairness detalhada, MLflow, integração do artefato adaptativo ao comando `decide` e qualquer alegação de prontidão regulada. Esses itens são tratados separadamente no backlog realinhado.
+Ficam fora deste experimento: delayed rewards complexos, eventos censurados, fairness detalhada, integração do artefato adaptativo ao comando `decide`, tracking remoto e qualquer alegação de prontidão regulada. Esses itens são tratados separadamente no backlog realinhado.

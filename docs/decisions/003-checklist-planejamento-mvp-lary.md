@@ -166,7 +166,7 @@ O projeto seguirá uma sequência incremental:
 - [ ] Criar `docs/architecture-azure.md`.
 - [ ] Incluir diagrama Mermaid.
 - [ ] Mapear serviços Azure.
-- [ ] Incluir Azure ML ou MLflow para tracking.
+- [x] Incluir MLflow local para tracking da comparação adaptativa; Azure ML remoto permanece futuro.
 - [ ] Incluir Azure Key Vault.
 - [ ] Incluir Managed Identity.
 - [ ] Incluir Azure Monitor/Application Insights.
