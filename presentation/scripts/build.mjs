@@ -47,6 +47,12 @@ await mkdir(path.join(distDir, 'vendor/plotly'), { recursive: true });
 await mkdir(path.join(distDir, 'vendor/mermaid'), { recursive: true });
 await mkdir(path.join(distDir, 'data'), { recursive: true });
 
+const apiUrl = process.env.DEMO_API_URL ?? 'http://127.0.0.1:8000';
+const timeoutMs = Number(process.env.DEMO_API_TIMEOUT_MS ?? 5000);
+if (!Number.isInteger(timeoutMs) || timeoutMs < 100) {
+  throw new Error('DEMO_API_TIMEOUT_MS deve ser um inteiro >= 100.');
+}
+
 await Promise.all([
   cp(path.join(presentationDir, 'node_modules/reveal.js/dist/reveal.js'), path.join(distDir, 'vendor/reveal/reveal.js')),
   cp(path.join(presentationDir, 'node_modules/reveal.js/dist/reveal.css'), path.join(distDir, 'vendor/reveal/reveal.css')),
@@ -56,6 +62,7 @@ await Promise.all([
   cp(reportPath, path.join(distDir, 'data/report.json')),
   cp(path.join(officialArtifactsDir, 'provenance.json'), path.join(distDir, 'data/provenance.json')),
   cp(path.join(officialArtifactsDir, 'policy.json'), path.join(distDir, 'data/policy.json')),
+  cp(path.join(sourceDir, 'data/contingency-responses.json'), path.join(distDir, 'data/contingency-responses.json')),
 ]);
 
 await writeFile(
@@ -64,4 +71,23 @@ await writeFile(
   'utf8',
 );
 
-console.log(`Deck offline gerado em ${path.relative(repositoryDir, distDir)} (${report.runs.length} seeds, ${report.dataset.row_count} registros por seed).`);
+const contingency = JSON.parse(
+  await readFile(path.join(sourceDir, 'data/contingency-responses.json'), 'utf8'),
+);
+if (contingency.version !== 'contingency_responses_v1' || typeof contingency.responses !== 'object') {
+  throw new Error('Respostas de contingência versionadas inválidas.');
+}
+await Promise.all([
+  writeFile(
+    path.join(distDir, 'assets/runtime-config.js'),
+    `window.DEMO_CONFIG = ${JSON.stringify({ apiUrl, timeoutMs })};\n`,
+    'utf8',
+  ),
+  writeFile(
+    path.join(distDir, 'assets/contingency-data.js'),
+    `window.CONTINGENCY_RESPONSES = ${JSON.stringify(contingency)};\n`,
+    'utf8',
+  ),
+]);
+
+console.log(`Deck offline gerado em ${path.relative(repositoryDir, distDir)} (${report.runs.length} seeds, ${report.dataset.row_count} registros por seed; API configurada no build).`);

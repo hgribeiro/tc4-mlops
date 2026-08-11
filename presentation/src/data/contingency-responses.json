@@ -1,0 +1,119 @@
+{
+  "version": "contingency_responses_v1",
+  "responses": {
+    "vehicle_simple": {
+      "baseline": {
+        "decision_id": "contingency_vehicle_simple_baseline_v1",
+        "request_id": "req_demo_vehicle_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "simulate_vehicle_secured_loan",
+        "eligible_actions": ["simulate_vehicle_secured_loan", "educational_content_secured_credit", "request_documents", "no_offer_now"],
+        "policy_version": "baseline_deterministic_v0.1",
+        "reason_codes": ["vehicle_collateral_anchor", "digital_channel_fit", "sufficient_context_for_simulation", "qualified_intent_signal", "low_or_medium_synthetic_risk", "no_critical_guardrail_triggered"],
+        "requires_human_review": false,
+        "guardrails_triggered": [],
+        "audit_log_ref": "contingency://contingency_responses_v1/vehicle_simple/baseline",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      },
+      "adaptive": {
+        "decision_id": "contingency_vehicle_simple_adaptive_v1",
+        "request_id": "req_demo_vehicle_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "simulate_vehicle_secured_loan",
+        "eligible_actions": ["simulate_vehicle_secured_loan", "educational_content_secured_credit", "request_documents", "no_offer_now"],
+        "policy_version": "contextual_thompson_sampling_v0.1",
+        "reason_codes": ["vehicle_collateral_anchor", "adaptive_simulation_selected", "adaptive_policy_selection", "eligible_after_guardrails"],
+        "requires_human_review": false,
+        "guardrails_triggered": [],
+        "audit_log_ref": "contingency://contingency_responses_v1/vehicle_simple/adaptive",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      }
+    },
+    "home_complex": {
+      "baseline": {
+        "decision_id": "contingency_home_complex_baseline_v1",
+        "request_id": "req_demo_home_complex_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "route_to_specialist",
+        "eligible_actions": ["route_to_specialist", "request_documents", "educational_content_secured_credit", "no_offer_now"],
+        "policy_version": "baseline_deterministic_v0.1",
+        "reason_codes": ["specialist_required", "high_value_or_complex_case", "home_collateral_complexity", "specialist_guidance_required", "collateral_complexity", "low_policy_confidence", "human_in_the_loop"],
+        "requires_human_review": true,
+        "guardrails_triggered": [],
+        "audit_log_ref": "contingency://contingency_responses_v1/home_complex/baseline",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      },
+      "adaptive": {
+        "decision_id": "contingency_home_complex_adaptive_v1",
+        "request_id": "req_demo_home_complex_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "route_to_specialist",
+        "eligible_actions": ["route_to_specialist", "request_documents", "educational_content_secured_credit", "no_offer_now"],
+        "policy_version": "contextual_thompson_sampling_v0.1",
+        "reason_codes": ["specialist_required", "human_in_the_loop", "adaptive_policy_selection", "eligible_after_guardrails"],
+        "requires_human_review": true,
+        "guardrails_triggered": [],
+        "audit_log_ref": "contingency://contingency_responses_v1/home_complex/adaptive",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      }
+    },
+    "guardrail_sensitive": {
+      "baseline": {
+        "decision_id": "contingency_guardrail_sensitive_baseline_v1",
+        "request_id": "req_demo_guardrail_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "no_offer_now",
+        "eligible_actions": ["no_offer_now"],
+        "policy_version": "baseline_deterministic_v0.1",
+        "reason_codes": ["adversarial_or_unsafe_context", "no_responsible_action_available", "approval_clarification_needed"],
+        "requires_human_review": false,
+        "guardrails_triggered": ["adversarial_or_unsafe_context"],
+        "audit_log_ref": "contingency://contingency_responses_v1/guardrail_sensitive/baseline",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      },
+      "adaptive": {
+        "decision_id": "contingency_guardrail_sensitive_adaptive_v1",
+        "request_id": "req_demo_guardrail_001",
+        "decision_type": "responsible_next_step",
+        "selected_action": "no_offer_now",
+        "eligible_actions": ["no_offer_now"],
+        "policy_version": "contextual_thompson_sampling_v0.1",
+        "reason_codes": ["adversarial_or_unsafe_context", "no_responsible_action_available", "approval_clarification_needed"],
+        "requires_human_review": false,
+        "guardrails_triggered": ["adversarial_or_unsafe_context"],
+        "audit_log_ref": "contingency://contingency_responses_v1/guardrail_sensitive/adaptive",
+        "not_credit_approval": true,
+        "not_credit_contracting": true,
+        "does_not_define_real_rate": true,
+        "does_not_define_real_limit": true,
+        "not_simulated_qualified_proposal": true,
+        "requires_formal_credit_analysis": true
+      }
+    }
+  }
+}

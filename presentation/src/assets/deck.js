@@ -166,7 +166,142 @@
     plugins: [window.RevealNotes],
   });
 
+  const configureInteractiveDemo = () => {
+    const scenario = document.querySelector('#demo-scenario');
+    const policy = document.querySelector('#demo-policy');
+    const execute = document.querySelector('#execute-demo');
+    const status = document.querySelector('#demo-status');
+    const output = document.querySelector('#decision-output');
+    const badge = document.querySelector('#demo-badge');
+    const apiUrlElement = document.querySelector('#demo-api-url');
+    const contingencySwitch = document.querySelector('#contingency-switch');
+    const confirmation = document.querySelector('#confirm-contingency');
+    const useContingency = document.querySelector('#use-contingency');
+    const sourceButtons = [...document.querySelectorAll('[data-demo-source]')];
+    const config = window.DEMO_CONFIG ?? {};
+    const contingencies = window.CONTINGENCY_RESPONSES?.responses ?? {};
+    let source = 'live';
+
+    if (apiUrlElement) {
+      apiUrlElement.textContent = config.apiUrl ? `API: ${config.apiUrl}` : 'API não configurada no build';
+    }
+
+    const setStatus = (message, state = 'idle') => {
+      status.textContent = message;
+      status.dataset.state = state;
+    };
+    const setBadge = (mode) => {
+      badge.textContent = mode === 'live' ? 'AO VIVO' : 'CONTINGÊNCIA';
+      badge.className = `demo-badge ${mode === 'live' ? 'live' : 'contingency'}`;
+    };
+    const setSource = (mode) => {
+      source = mode;
+      setBadge(mode);
+      sourceButtons.forEach((button) => {
+        button.setAttribute('aria-pressed', String(button.dataset.demoSource === mode));
+      });
+      if (mode === 'contingency') {
+        confirmation.checked = false;
+        useContingency.disabled = true;
+        contingencySwitch.hidden = false;
+        execute.disabled = true;
+        setStatus('Contingência selecionada. Confirme antes de exibir a resposta estática.', 'idle');
+      } else {
+        contingencySwitch.hidden = true;
+        execute.disabled = false;
+        setStatus('Pronto para executar um cenário oficial.', 'idle');
+      }
+    };
+    const fillList = (selector, values, emptyLabel) => {
+      const list = document.querySelector(selector);
+      list.replaceChildren();
+      const items = values.length ? values : [emptyLabel];
+      items.forEach((value) => {
+        const item = document.createElement('li');
+        item.textContent = value;
+        list.append(item);
+      });
+    };
+    const renderDecision = (decision, mode) => {
+      document.querySelector('#selected-action').textContent = decision.selected_action;
+      fillList('#eligible-actions', decision.eligible_actions ?? [], 'Nenhuma ação elegível');
+      document.querySelector('#policy-version').textContent = decision.policy_version;
+      document.querySelector('#audit-log-ref').textContent = decision.audit_log_ref;
+      fillList('#reason-codes', decision.reason_codes ?? [], 'Nenhum Reason Code');
+      fillList('#guardrails', decision.guardrails_triggered ?? [], 'Nenhum Guardrail acionado');
+      document.querySelector('#human-review').textContent = decision.requires_human_review ? 'Sim' : 'Não';
+      const authority = [
+        ['not_credit_approval', 'não é aprovação'],
+        ['not_credit_contracting', 'não é contratação'],
+        ['does_not_define_real_rate', 'não define taxa real'],
+        ['does_not_define_real_limit', 'não define limite real'],
+        ['not_simulated_qualified_proposal', 'não é Proposta Qualificada Simulada'],
+      ].filter(([key]) => decision[key]).map(([, label]) => label);
+      document.querySelector('#authority-flags').textContent = `Limites de autoridade: ${authority.join(' · ') || 'não informados'}`;
+      output.hidden = false;
+      setBadge(mode);
+      setStatus(mode === 'live' ? 'Resposta recebida e auditada pela API.' : 'Resposta estática versionada exibida em contingência.', 'success');
+    };
+    const showContingencyOffer = (state, message) => {
+      output.hidden = true;
+      source = 'live';
+      setBadge('live');
+      sourceButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.demoSource === 'live')));
+      contingencySwitch.hidden = false;
+      confirmation.checked = false;
+      useContingency.disabled = true;
+      execute.disabled = false;
+      setStatus(message, state);
+    };
+    const contingencyForSelection = () => contingencies[scenario.value]?.[policy.value];
+
+    sourceButtons.forEach((button) => button.addEventListener('click', () => setSource(button.dataset.demoSource)));
+    confirmation.addEventListener('change', () => { useContingency.disabled = !confirmation.checked; });
+    useContingency.addEventListener('click', () => {
+      if (!confirmation.checked) return;
+      const decision = contingencyForSelection();
+      if (!decision) {
+        setStatus('Resposta de contingência indisponível para a seleção.', 'error');
+        return;
+      }
+      renderDecision(decision, 'contingency');
+      contingencySwitch.hidden = true;
+      execute.disabled = false;
+    });
+    execute.addEventListener('click', async () => {
+      if (source !== 'live') return;
+      output.hidden = true;
+      contingencySwitch.hidden = true;
+      execute.disabled = true;
+      setStatus('Consultando a API de Demonstração…', 'loading');
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), Number(config.timeoutMs) || 5000);
+      try {
+        if (!config.apiUrl) throw new Error('API_URL_NOT_CONFIGURED');
+        const endpoint = `${String(config.apiUrl).replace(/\/$/, '')}/v1/decisions`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ scenario_id: scenario.value, policy_mode: policy.value }),
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP_${response.status}`);
+        const decision = await response.json();
+        renderDecision(decision, 'live');
+        contingencySwitch.hidden = true;
+      } catch (error) {
+        const timedOut = error?.name === 'AbortError';
+        showContingencyOffer(timedOut ? 'timeout' : 'error', timedOut
+          ? 'Tempo esgotado na API. Nenhum fallback ocorreu; confirme a contingência abaixo.'
+          : 'Não foi possível obter uma resposta ao vivo. Nenhum fallback ocorreu; confirme a contingência abaixo.');
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    });
+  };
+
   Promise.all([rewardPlot, upliftPlot, exposurePlot, mermaidReady, revealReady]).then(() => {
+    configureInteractiveDemo();
     window.__DECK_READY__ = true;
     document.documentElement.dataset.deckReady = 'true';
   });

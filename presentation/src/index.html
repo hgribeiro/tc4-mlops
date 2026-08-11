@@ -135,6 +135,45 @@ flowchart LR
         <aside class="notes">[4:20–4:50] O valor é um ciclo mensurável e auditável, não uma promessa de produção. Ainda faltam validação de fairness, delayed rewards reais e avaliação regulatória. A decisão responsável agora é validar premissas com produto, risco e compliance.</aside>
       </section>
 
+      <section id="interactive-demo" data-main-slide data-time="4:50–5:00">
+        <div class="eyebrow">11 · DEMONSTRAÇÃO INTERATIVA</div>
+        <h2>Execute o <span class="accent">Próximo Passo Responsável.</span></h2>
+        <div class="demo-toolbar">
+          <label>Cenário oficial<select id="demo-scenario">
+            <option value="vehicle_simple">vehicle_simple · veículo simples</option>
+            <option value="home_complex">home_complex · imóvel complexo</option>
+            <option value="guardrail_sensitive">guardrail_sensitive · guardrail</option>
+          </select></label>
+          <label>Modo de política<select id="demo-policy">
+            <option value="baseline">Baseline Determinístico</option>
+            <option value="adaptive">Política Adaptativa</option>
+          </select></label>
+          <div class="demo-source" role="group" aria-label="Origem da resposta">
+            <button type="button" data-demo-source="live" aria-pressed="true">AO VIVO</button>
+            <button type="button" data-demo-source="contingency" aria-pressed="false">CONTINGÊNCIA</button>
+          </div>
+        </div>
+        <div class="demo-status-row"><span id="demo-badge" class="demo-badge live">AO VIVO</span><span id="demo-api-url">API configurada no build</span></div>
+        <div id="demo-status" class="demo-status" role="status" data-state="idle">Pronto para executar um cenário oficial.</div>
+        <div id="contingency-switch" class="contingency-switch" hidden>
+          <p><strong>A API ao vivo não respondeu.</strong> A contingência é uma resposta estática versionada e não será usada automaticamente.</p>
+          <label class="confirm-contingency"><input id="confirm-contingency" type="checkbox"> Confirmo usar a resposta estática versionada.</label>
+          <button id="use-contingency" type="button" disabled>Usar contingência explicitamente</button>
+        </div>
+        <button id="execute-demo" class="execute-demo" type="button">Executar demonstração</button>
+        <div id="decision-output" class="decision-output" hidden aria-live="polite">
+          <div class="decision-summary"><span>Ação selecionada</span><strong id="selected-action">—</strong></div>
+          <div class="decision-grid">
+            <div><h3>Ações elegíveis</h3><ul id="eligible-actions"></ul></div>
+            <div><h3>Policy version</h3><p id="policy-version">—</p><h3>Audit log ref</h3><p id="audit-log-ref">—</p></div>
+            <div><h3>Reason Codes</h3><ul id="reason-codes"></ul></div>
+            <div><h3>Guardrails</h3><ul id="guardrails"></ul></div>
+          </div>
+          <div class="decision-flags"><strong>Humano no Loop: <span id="human-review">—</span></strong><span id="authority-flags"></span></div>
+        </div>
+        <aside class="notes">[4:50–5:00] Escolha somente um cenário oficial e um modo. A origem da resposta permanece visível. Se a API falhar, a contingência exige confirmação explícita; ela não é aprovação, contratação, taxa ou limite real.</aside>
+      </section>
+
       <section id="experiment-contract" data-appendix-slide>
         <div class="eyebrow">APÊNDICE A · MÉTODO</div><h2>Contrato experimental</h2>
         <table><tbody>
@@ -206,6 +245,8 @@ flowchart LR
   <script src="vendor/plotly/plotly.min.js"></script>
   <script src="vendor/mermaid/mermaid.min.js"></script>
   <script src="assets/report-data.js"></script>
+  <script src="assets/runtime-config.js"></script>
+  <script src="assets/contingency-data.js"></script>
   <script src="assets/deck.js"></script>
 </body>
 </html>
