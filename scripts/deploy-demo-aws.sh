@@ -21,6 +21,9 @@ commit_sha="${COMMIT_SHA:-$(git rev-parse HEAD)}"
 low_quota_mode="${LOW_QUOTA_MODE:-false}"
 state_bucket="${STATE_BUCKET:-tc4-mlops-tfstate-969212888717-bootstrap25}"
 state_key="demo/terraform.tfstate"
+# Every deployment refreshes the temporary-demo expiry unless an evidence run
+# needs an explicitly supplied RFC3339 value.
+expires_at="${EXPIRES_AT:-$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')}"
 demo_dir="infrastructure/environments/demo"
 backend_file="${demo_dir}/backend.hcl"
 
@@ -39,9 +42,17 @@ EOF
 trap 'rm -f "$backend_file"' EXIT
 
 terraform -chdir="$demo_dir" init -reconfigure -backend-config=backend.hcl
-terraform -chdir="$demo_dir" apply -auto-approve -var="aws_region=$region" -var="commit_sha=$commit_sha" -var="low_quota_mode=$low_quota_mode"
-expires_at="$(terraform -chdir="$demo_dir" output -raw expires_at)"
-ecr_url="$(terraform -chdir="$demo_dir" output -raw ecr_repository_url)"
+# Never re-run the image-null bootstrap apply when this state already owns ECR:
+# it would otherwise plan to remove a runtime created by the image stage.
+if terraform -chdir="$demo_dir" state list | grep -qx 'aws_ecr_repository.api'; then
+  ecr_url="$(terraform -chdir="$demo_dir" output -raw ecr_repository_url)"
+  echo "Reusing ECR already tracked in separate demo state: $ecr_url"
+else
+  terraform -chdir="$demo_dir" apply -auto-approve \
+    -var="aws_region=$region" -var="commit_sha=$commit_sha" \
+    -var="expires_at=$expires_at" -var="low_quota_mode=$low_quota_mode"
+  ecr_url="$(terraform -chdir="$demo_dir" output -raw ecr_repository_url)"
+fi
 cloudfront_url="$(terraform -chdir="$demo_dir" output -raw cloudfront_url)"
 distribution_id="$(terraform -chdir="$demo_dir" output -raw cloudfront_distribution_id)"
 

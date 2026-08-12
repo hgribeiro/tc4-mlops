@@ -125,9 +125,10 @@ informe `LOW_QUOTA_MODE` (ou informe `false`) para restaurar a reserva padrão d
 O script exige a conta `969212888717`, usa `us-east-1` por padrão (configure
 `AWS_REGION` para mudar), cria `backend.hcl` ignorado temporário e usa somente
 a cadeia de credenciais do perfil. Ao final ele **mantém** a demo para os itens
-seguintes, com `ExpiresAt` quatro horas após o primeiro apply. Isso é uma tag e
-um failsafe operacional; não é destruição automática, Budget Alert nem o
-workflow de encerramento previsto para a issue #27.
+seguintes, com `ExpiresAt` quatro horas após o deploy (ou `EXPIRES_AT` explícito
+para uma execução de evidência). Isso é uma tag e um failsafe operacional; não
+é destruição automática, Budget Alert nem o workflow de encerramento previsto
+para a issue #27.
 
 A role OIDC de deploy continua com os mesmos subjects exatos. Sua policy e
 permissions boundary agora enumeram a chave `demo/terraform.tfstate` e os
