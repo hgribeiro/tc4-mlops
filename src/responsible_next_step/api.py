@@ -17,6 +17,9 @@ from .audit import AuditPersistence, LocalAuditPersistence, S3AuditPersistence
 from .engine import decide
 
 logger = logging.getLogger(__name__)
+# Lambda's default root logger is WARNING; this named logger must emit the
+# deliberately minimized decision events used by the CloudWatch metric filter.
+logger.setLevel(logging.INFO)
 
 ScenarioId = Literal["vehicle_simple", "home_complex", "guardrail_sensitive"]
 PolicyMode = Literal["baseline", "adaptive"]

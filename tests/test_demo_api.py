@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 import unittest
@@ -94,6 +95,8 @@ class DemoApiHttpContractTest(unittest.TestCase):
         )
 
     def test_telemetry_logs_only_decision_metadata_not_payload(self):
+        api_logger = logging.getLogger("responsible_next_step.api")
+        self.assertEqual(api_logger.level, logging.INFO)
         with self.assertLogs("responsible_next_step.api", level="INFO") as logs:
             response = self.client.post(
                 "/v1/decisions",

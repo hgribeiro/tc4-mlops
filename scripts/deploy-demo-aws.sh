@@ -90,7 +90,7 @@ for policy in baseline adaptive; do
   done
 done
 
-object_count="$(aws s3api list-objects-v2 --bucket "$audit_bucket" --prefix decisions/ --profile "$AWS_PROFILE" --query 'KeyCount' --output text)"
+object_count="$(aws s3api list-objects-v2 --bucket "$audit_bucket" --prefix decisions/ --profile "$AWS_PROFILE" --query 'length(Contents[])' --output text)"
 [[ "$object_count" -ge 6 ]] || { echo "Expected at least six audit objects; found $object_count" >&2; exit 1; }
 # The API accepts only IDs, but this independently checks that scenario payloads
 # did not leak into the Lambda log stream.
