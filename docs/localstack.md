@@ -55,12 +55,12 @@ terraform -chdir=infrastructure/modules/demo-api test
 
 ## Limites explícitos do LocalStack Community
 
-LocalStack Community retornou `501`/licença requerida para o transporte ECR da tentativa anterior. Por isso este fluxo **não cria ECR, não publica imagem e não afirma paridade de container**. O ZIP local não é evidência de que Lambda por imagem/ECR da AWS funciona; esse transporte e o smoke AWS real permanecem fora desta issue (planejados separadamente).
+LocalStack Community retornou `501`/licença requerida para o transporte ECR da tentativa anterior. Por isso este fluxo **não cria ECR, não publica imagem e não afirma paridade de container**. O ZIP local não é evidência de que Lambda por imagem/ECR da AWS funciona; o smoke AWS real histórico do #25 cobriu esse transporte, mas seus recursos foram destruídos no #27.
 
 O smoke local é evidência somente para a integração efetivamente exercitada: API Gateway REST → Lambda ZIP → FastAPI/Mangum → S3. Ele não é prova de comportamento AWS.
 
 A URL REST do LocalStack é construída pelo provider 5.x após a criação do API Gateway; a integração usa o URI Lambda no formato AWS (`arn:aws:apigateway:...:lambda:path/2015-03-31/functions/.../invocations`). O smoke exercita o mesmo contrato, mas não substitui a validação AWS da arquitetura por imagem/ECR.
 
-As superfícies abaixo **não são emuladas como evidência neste fluxo** e devem ser cobertas por integração/smoke na AWS antes de uma demo publicada: CloudFront, OIDC/IAM Identity Center, IAM de conta real, ECR e Lambda por imagem, CloudWatch Logs/métricas/alarmes, throttling/concurrency da Lambda, políticas IAM efetivamente avaliadas, DNS/TLS/API Gateway e comportamento operacional/ciclo de vida. Não há LocalStack pago, CloudFront, GitHub Actions, bootstrap persistente de AWS ou deploy AWS neste escopo.
+As superfícies abaixo **não são emuladas como evidência neste fluxo**: CloudFront, OIDC/IAM Identity Center, IAM de conta real, ECR e Lambda por imagem, CloudWatch Logs/métricas/alarmes, throttling/concurrency da Lambda, políticas IAM efetivamente avaliadas, DNS/TLS/API Gateway e comportamento operacional/ciclo de vida. O #25 validou essas superfícies na AWS real de forma histórica; hoje seus recursos estão destruídos. Não há LocalStack pago, CloudFront, GitHub Actions ou bootstrap persistente de AWS neste escopo local.
 
 Se Docker, LocalStack ou o runtime Lambda não estiverem disponíveis, não interprete `terraform validate` ou testes mockados como smoke. Registre o bloqueio e execute o smoke somente quando a dependência estiver funcional.

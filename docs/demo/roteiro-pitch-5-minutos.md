@@ -99,11 +99,17 @@ PYTHONPATH=src python -m responsible_next_step decide \
 
 Explicar que baseline e adaptativo podem escolher ações diferentes, mas ambos preservam o conjunto elegível, Guardrails e auditoria. Não interpretar uma decisão individual como prova de uplift.
 
-### 4:20–4:50 — Limitações e fechamento
+### 4:20–4:50 — Evidência de execução, limitações e fechamento
 
 **Fala:**
 
-> O Golden Set passa em cinco casos, mas tem cobertura pequena. A base é proxy de depósito a prazo e as recompensas são simuladas; delayed rewards complexos e validação regulatória continuam fora do MVP. O resultado demonstra um ciclo MLOps auditável, não eficácia causal nem prontidão para produção bancária. Para Lary, o valor está em aprender contra um baseline sem perder explicação, Humano no Loop e rollback.
+> A prova cloud também tem três rótulos: AWS live foi executada no #25 e está hoje offline/destroyed após o #27; LocalStack reproduz apenas API Gateway REST, Lambda ZIP e S3; contingência é uma resposta estática versionada, sempre confirmada. Azure é equivalência conceitual, não deployment. EventBridge/SQS/worker de Delayed Rewards não foram provisionados e ficam para evolução futura.
+
+**Tela:** apêndice de arquitetura AWS, `docs/demo/acceptance-final.md` e status AO VIVO/CONTINGÊNCIA do deck.
+
+**Fala:**
+
+> O Golden Set passa em cinco casos, mas tem cobertura pequena. A base é proxy de depósito a prazo e as recompensas são simuladas, offline e não causais; delayed rewards complexos e validação regulatória continuam fora do MVP. O resultado demonstra um ciclo MLOps auditável, não eficácia causal nem prontidão para produção bancária. Para Lary, o valor está em aprender contra um baseline sem perder explicação, Humano no Loop e rollback.
 
 ## Plano de contingência
 
@@ -128,4 +134,6 @@ Se apenas o MLflow falhar, mostrar no JSON os parâmetros, as métricas e `exper
 - recompensas são chamadas de simuladas;
 - as falas distinguem recomendação, Simulação, Proposta Qualificada Simulada, Aprovação e Contratação;
 - nenhuma fala promete Aprovação, Contratação, taxa ou limite real;
-- contingência foi testada sem rede.
+- AWS live, LocalStack e contingência são rotulados sem ambiguidade;
+- contingência foi testada sem rede;
+- arquitetura AWS e seus limites aparecem no apêndice.

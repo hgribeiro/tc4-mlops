@@ -1,6 +1,6 @@
 # Bootstrap AWS persistente e identidades GitHub OIDC
 
-> **Estado desta documentação:** o código foi validado offline; este repositório **não afirma que o bootstrap foi aplicado em uma conta AWS**. A aplicação exige uma conta AWS preparada por uma pessoa autorizada.
+> **Estado desta documentação:** o bootstrap foi aplicado e permanece como fundação persistente da conta usada na validação. A demo temporária foi destruída; novas aplicações exigem uma pessoa autorizada, SSO e revisão humana.
 
 Este bootstrap é a fundação persistente da demonstração temporária descrita no ADR-0002. Ele cria somente:
 
@@ -89,7 +89,7 @@ Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alte
 - **Falha durante a migração:** mantenha o state local intacto, corrija a causa (permissão, nome ou região) e repita `init -migrate-state`. Não execute um segundo bootstrap apply que possa criar recursos fora do state original.
 - **Destroy acidental:** o bucket, provider OIDC, roles e boundary têm `prevent_destroy`; o bucket também tem `force_destroy = false`. Uma remoção persistente exige alteração explícita, revisão humana e confirmação de que nenhuma demo usa o backend.
 
-O bootstrap não guarda secrets em outputs. ARNs e o nome do bucket são identificadores operacionais, não credenciais. Revise regularmente as versões do state, a associação das roles e as proteções MFA/SSO com o administrador da conta.
+O bootstrap não guarda secrets em outputs. ARNs e o nome do bucket são identificadores operacionais, não credenciais. Revise regularmente as versões do state, a associação das roles, o Budget e as proteções MFA/SSO com o administrador da conta. O Budget persistente é consultivo e não é um hard stop.
 
 ## Demo AWS temporária (#25)
 

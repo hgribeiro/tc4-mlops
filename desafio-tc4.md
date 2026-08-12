@@ -91,13 +91,13 @@ Os entregáveis abaixo são organizados em nove etapas acumulativas (0–8). Cad
    - Suíte mínima de testes automatizados cobrindo contratos de dados, política e registro de decisão.
    - *Evidência de aceite:* a banca consegue executar uma decisão de exemplo, ver o braço selecionado, a justificativa, a versão da política e o registro auditável gerado.
 
-7. **Etapa 6 — Arquitetura-alvo Azure.**
-   - *Objetivo:* demonstrar como a solução seria operada em Azure.
-   - `docs/architecture-azure.md` com diagrama Mermaid e mapeamento de serviços Azure.
-   - Plano de deploy e estimativa qualitativa de custo.
-   - Cobertura das camadas de compute, API, dados, IA/RAG, observabilidade, segurança, identidade e governança.
-   - Plano de gestão de segredos e credenciais usando Azure Key Vault e Managed Identity.
-   - *Evidência de aceite:* a arquitetura usa exclusivamente Azure, cobre as camadas acima e justifica trade-offs sem depender de outro provedor de nuvem.
+7. **Etapa 6 — Arquitetura AWS executada e equivalência Azure.**
+   - *Objetivo:* registrar a arquitetura AWS realmente validada e mapear equivalentes Azure somente de forma conceitual.
+   - `docs/architecture-aws.md` com diagrama Mermaid, componentes AWS e tabela AWS→Azure.
+   - Plano de operação AWS temporária, teardown e estimativa qualitativa de custo.
+   - Cobertura das camadas de compute, API, dados, observabilidade, segurança, identidade e governança efetivamente exercitadas.
+   - Declaração explícita de que Azure não foi implantado/validado e de que não há operação multicloud.
+   - *Evidência de aceite:* a arquitetura AWS, LocalStack e contingência são diferenciados; a tabela Azure não é tratada como deployment.
 
 8. **Etapa 7 — Ciclo de vida MLOps.**
    - *Objetivo:* mostrar como novas políticas seriam testadas, aprovadas e promovidas.
@@ -112,7 +112,7 @@ Os entregáveis abaixo são organizados em nove etapas acumulativas (0–8). Cad
    - `docs/model-card.md` com nome do modelo, versão, dados de treino e avaliação, métricas, intended use, out-of-scope use, análise de fairness, vieses conhecidos e limitações técnicas.
    - `docs/system-card.md` com escopo do sistema, fluxo de decisão, dependências, guardrails, cenários de risco (reward hacking, manipulação do contexto, abuso do assistente, violação de suitability) e plano de monitoramento.
    - `docs/lgpd-plan.md` com base legal, finalidade, minimização, ciclo de retenção, mapeamento de identificadores e atributos protegidos, política de logs e telemetria e plano de resposta a incidentes.
-   - Relatório técnico de até 10 páginas cobrindo problema, base escolhida, enriquecimento sintético, modelagem como multi-armed bandit, comparação quantitativa, arquitetura-alvo Azure, ciclo MLOps, limitações, riscos, hipóteses, trabalhos futuros e referências bibliográficas.
+   - Relatório técnico de até 10 páginas cobrindo problema, base escolhida, enriquecimento sintético, modelagem como multi-armed bandit, comparação quantitativa, arquitetura AWS executada, equivalência Azure não validada, ciclo MLOps, limitações, riscos, hipóteses, trabalhos futuros e referências bibliográficas.
    - Pitch de até 10 minutos seguido por 5 minutos de perguntas, com slides versionados no repositório em PDF ou formato aberto, roteiro cobrindo problema/abordagem/demonstração/evidências/riscos/governança/impacto, demonstração ao vivo ou gravada com cenário de exemplo e cenário adversarial, e distribuição clara de papéis entre integrantes.
    - Demonstração da plataforma em operação durante o pitch é desejável e soma pontos extras na avaliação; o grupo deve indicar o cenário escolhido, registrar o plano de contingência caso a execução ao vivo falhe e versionar a gravação ou dataset de demonstração no repositório.
    - Cobertura no pitch dos critérios de apresentação: FinOps com ROI, custo por serviço Azure e Total Cost of Ownership; justificativa de arquitetura técnica com diagrama, fronteiras de componentes e alternativas descartadas; cenários de escala e redução explicando maleabilidade arquitetônica sob diferentes volumes de requisições.
@@ -138,7 +138,7 @@ Os grupos devem definir métricas específicas para o desafio. Essas métricas p
 - [ ] Avaliação inclui golden set com pelo menos 20 exemplos; guardrails testados com cenários adversariais.
 - [ ] Camada de retreino, teste, aprovação e promoção de novas políticas documentada.
 - [ ] Serviço, API, notebook executável ou interface demonstrável funciona com instruções claras e log auditável de decisão.
-- [ ] Arquitetura-alvo e plano de deploy usam exclusivamente serviços Azure, com plano de segredos via Key Vault e Managed Identity.
+- [x] Arquitetura executada e plano de deploy documentam AWS; equivalentes Azure são conceituais e não validados.
 - [ ] Model Card, System Card e plano LGPD completos.
 - [ ] Pitch separa problema, abordagem, demonstração, evidências, riscos e impacto.
 - [ ] Pitch cobre FinOps (ROI, custo qualitativo por serviço Azure, TCO).

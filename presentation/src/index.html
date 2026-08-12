@@ -211,19 +211,20 @@ flowchart LR
       </section>
 
       <section id="aws-architecture" data-appendix-slide>
-        <div class="eyebrow">APÊNDICE D · ARQUITETURA-ALVO APROVADA</div><h2>AWS para a demo temporária</h2>
+        <div class="eyebrow">APÊNDICE D · ARQUITETURA AWS EXECUTADA</div><h2>AWS validada; Azure conceitual</h2>
         <pre class="mermaid">
 flowchart LR
-  U[Navegador] --> CF[CloudFront]
+  U[Navegador] --> CF[CloudFront HTTPS]
   CF --> S3[Deck em S3 privado]
-  U --> AG[API Gateway]
-  AG --> LA[Lambda / FastAPI]
+  U --> AG[API Gateway HTTP]
+  AG --> LA[Lambda containerizada]
+  LA -. imagem .-> ECR[ECR]
   LA --> AU[S3 auditoria privada]
   LA --> CW[CloudWatch minimizado]
         </pre>
-        <p class="small"><strong>Azure:</strong> somente equivalência conceitual — Front Door/Storage, API Management/Functions e Azure Monitor. Não implantada nem validada.</p>
-        <p class="caveat">Diagrama de arquitetura-alvo: infraestrutura e API AWS não são implantadas nesta entrega. Delayed Rewards em EventBridge/SQS são evolução futura.</p>
-        <aside class="notes">Apêndice. Conforme ADR-0002, AWS é a arquitetura-alvo executável da demo; esta entrega não implanta API ou infraestrutura. Azure não é apresentada como multicloud validada.</aside>
+        <table><tbody><tr><th>AWS executada</th><th>Azure equivalente conceitual</th></tr><tr><td>CloudFront/S3 · API Gateway/Lambda/ECR · S3/CloudWatch</td><td>Front Door/Blob · API Management/Functions/Registry · Blob/Monitor</td></tr></tbody></table>
+        <p class="caveat">AWS foi executada no #25 e destruída no #27. Azure não foi implantada nem validada; não é multicloud. EventBridge/SQS/worker de Delayed Rewards são evolução futura não provisionada.</p>
+        <aside class="notes">Apêndice. Separe as provas: AWS live é evidência histórica do #25, hoje offline/destroyed; LocalStack prova apenas API Gateway REST, Lambda ZIP e S3; a contingência é estática e versionada. Azure é somente equivalência conceitual, sem deployment ou validação.</aside>
       </section>
 
       <section id="reproduction" data-appendix-slide>
