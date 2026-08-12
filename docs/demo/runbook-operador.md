@@ -58,9 +58,11 @@ shellcheck scripts/*.sh
 
 Comandos externos podem estar indisponíveis; registre `not run` em vez de converter validação parcial em evidência. Confira links Markdown, assets do deck e `git diff --check`.
 
-## 4. Deploy AWS histórico (não executar agora)
+## 4. Promoção e deploy AWS (não executar agora)
 
-Em uma demonstração futura, após revisão humana e aprovação do environment `demo`, o workflow manual #26 ou o script abaixo pode criar o ambiente temporário:
+A integração oficial usa `develop` e um PR `develop` → `main`. O PR é a superfície de aprovação humana: qualidade e o Terraform plan não mutante devem passar, e o branch protection exige os contextos `quality / software, evidence, deck and Terraform` e `plan / non-mutating demo Terraform plan` com branch atualizada. O merge manual do PR gera um push em `main` e inicia automaticamente o deploy; PRs e pushes em `develop` nunca fazem deploy. O environment `demo` mantém OIDC e deployment branch policy apenas para `main`, sem uma segunda aprovação de reviewer.
+
+Após a revisão humana e o merge do PR, o workflow cria o ambiente temporário. Não execute `apply` durante esta implementação; o script abaixo é somente referência operacional:
 
 ```bash
 export AWS_PROFILE=coding-agent

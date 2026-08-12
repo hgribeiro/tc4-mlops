@@ -30,6 +30,18 @@ def test_deploy_and_teardown_share_non_cancelling_lifecycle_lock():
     assert "cancel-in-progress: false" in DEPLOY_WORKFLOW.read_text()
 
 
+def test_teardown_event_matrix_requires_confirmation_and_schedules_expired_only():
+    workflow = TEARDOWN_WORKFLOW.read_text()
+    section = workflow.split("      - name: Export evidence and guarded teardown", 1)[1]
+
+    assert "if [[ \"${{ github.event_name }}\" == \"schedule\" ]]" in section
+    assert "scripts/teardown-demo-aws.sh --expired-only" in section
+    assert '[[ "$CONFIRMATION" == "DESTROY_DEMO" ]]' in section
+    assert "DESTROY_APPROVED=DESTROY_DEMO" in section
+    assert "--confirm-destroy" in section
+    assert "--expired-only" not in section.split("else", 1)[1]
+
+
 def test_teardown_recovers_from_empty_outputs_and_verifies_before_emptying_audit():
     teardown = TEARDOWN_SCRIPT.read_text()
     for expected in (

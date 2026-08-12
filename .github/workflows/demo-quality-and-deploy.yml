@@ -111,10 +111,13 @@ jobs:
   deploy:
     name: approved demo deployment
     needs: [quality, plan]
-    # A deployment can start only from main by an explicit dispatch. The GitHub
-    # demo environment additionally requires reviewer approval and limits its
-    # branches to main; its OIDC subject is environment:demo, never a ref.
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    # Merging the reviewed PR is the human approval surface. The resulting main
+    # push deploys automatically; dispatch remains available for an explicit
+    # main-only rerun. PRs and develop never deploy. The demo environment keeps
+    # the OIDC subject environment:demo and its custom main-only branch policy.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Shared with the teardown workflow so deployment and destroy cannot race.

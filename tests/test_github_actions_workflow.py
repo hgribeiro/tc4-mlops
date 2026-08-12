@@ -21,6 +21,35 @@ def test_demo_workflow_uses_only_exact_oidc_roles_and_approved_environment():
     assert "access-key-id" not in workflow
 
 
+def test_demo_workflow_event_matrix_promotes_only_main_push_to_deploy():
+    workflow = WORKFLOW.read_text()
+
+    # The quality/plan gates run on the promotion PR and resulting main push.
+    assert "pull_request:" in workflow
+    assert "push:" in workflow
+    assert "branches: [main]" in workflow
+    assert "if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'" in workflow
+
+    # A merge is the human promotion approval: only a push to main may deploy.
+    assert "github.event_name == 'push'" in workflow
+    assert "github.event_name == 'workflow_dispatch'" in workflow
+    assert "github.event_name == 'pull_request'" not in workflow.split("  deploy:", 1)[1]
+    assert "github.ref == 'refs/heads/develop'" not in workflow
+
+    deploy_condition = workflow.split("  deploy:", 1)[1].split("\n    runs-on:", 1)[0]
+    assert "github.event_name == 'push'" in deploy_condition
+    assert "github.ref == 'refs/heads/main'" in deploy_condition
+    assert "github.event_name == 'pull_request'" not in deploy_condition
+
+
+def test_deploy_keeps_low_quota_safe_when_event_has_no_dispatch_inputs():
+    workflow = WORKFLOW.read_text()
+    deploy_section = workflow.split("  deploy:", 1)[1]
+
+    assert "LOW_QUOTA_MODE: ${{ inputs.low_quota_mode || 'true' }}" in deploy_section
+    assert "LOW_QUOTA_MODE: \"true\"" in workflow
+
+
 def test_demo_workflow_validates_all_release_seams_before_plan_or_deploy():
     workflow = WORKFLOW.read_text()
 

@@ -74,11 +74,11 @@ Use os ARNs produzidos no output somente em workflows deste repositório. A trus
 - plan: `repo:hgribeiro/tc4-mlops:pull_request` ou `repo:hgribeiro/tc4-mlops:ref:refs/heads/main`;
 - deploy: `repo:hgribeiro/tc4-mlops:environment:demo`.
 
-Não há wildcard em `sub`, organização, repositório, ref ou ambiente. Proteja o environment GitHub `demo` com revisores obrigatórios **e restrinja as deployment branches a `main`** antes de ligar qualquer workflow ao ARN de deploy. O subject OIDC de um job que usa environment contém o environment, não a ref; a restrição de branch é, portanto, obrigatória na configuração do environment GitHub.
+Não há wildcard em `sub`, organização, repositório, ref ou ambiente. O environment GitHub `demo` deve manter a política de deployment branches personalizada somente para `main`; o subject OIDC de um job que usa environment contém o environment, não a ref, portanto essa restrição é obrigatória. A aprovação humana acontece no PR `develop` → `main`, protegido por checks; `demo` não adiciona uma segunda aprovação depois do merge.
 
 As duas roles são separadas. A role de plan lê o state separado da demo e manipula somente o lockfile dela; o plan usa `-refresh=false`, portanto não recebe acesso a recursos da demo nem pode escrever o state. A role de deploy atualiza somente o state separado e os recursos temporários de nomes concretos. Ambas usam a mesma permissions boundary. Elas deliberadamente **não** recebem `AdministratorAccess`, `iam:*`, `s3:*`, nem permissão para alterar a trust policy, provider OIDC, roles de automação ou proteções do bootstrap.
 
-O workflow [`.github/workflows/demo-quality-and-deploy.yml`](../.github/workflows/demo-quality-and-deploy.yml) executa qualidade, evidência oficial, deck, Docker e Terraform antes do plan. O plan assume somente `tc4-mlops-github-plan`; deploy só pode ser iniciado manualmente (`workflow_dispatch`) da ref `main`, assume somente `tc4-mlops-github-deploy` e declara `environment: demo`. O environment `demo` está configurado com aprovação manual do mantenedor `hgribeiro` e política de branch personalizada somente para `main`. Como este repositório tem apenas esse mantenedor configurado, a proteção permite autoaprovação (`prevent_self_review=false`); antes de uma demonstração com governança independente, adicione outro revisor e habilite `prevent_self_review`. A trust OIDC do environment não contém a ref, então ambas as proteções são necessárias. Não use `pull_request_target`, secrets de Access Key ou credenciais persistentes.
+O workflow [`.github/workflows/demo-quality-and-deploy.yml`](../.github/workflows/demo-quality-and-deploy.yml) executa qualidade, evidência oficial, deck, Docker e Terraform antes do plan. O PR `develop` → `main` executa os gates e o branch protection exige os contextos `quality / software, evidence, deck and Terraform` e `plan / non-mutating demo Terraform plan`, além de branch atualizada. O merge manual desse PR é a aprovação humana auditável; o push resultante em `main` executa o deploy automaticamente, assumindo somente `tc4-mlops-github-deploy` e declarando `environment: demo`. O `workflow_dispatch` continua disponível apenas para rerun explícito em `main`. O environment `demo` não possui required reviewers e mantém política de branch personalizada somente para `main`, evitando uma segunda aprovação após o merge. Não use `pull_request_target`, secrets de Access Key ou credenciais persistentes.
 
 Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alteração posterior deve ampliar de forma revisada **a policy da role e a permissions boundary**, com testes de invariantes para cada serviço. Não contorne essa etapa anexando uma policy ampla ou removendo a boundary.
 
@@ -129,8 +129,10 @@ para a issue #27.
 A role OIDC de deploy continua com os mesmos subjects exatos. Sua policy e
 permissions boundary agora enumeram a chave `demo/terraform.tfstate` e os
 nomes concretos `tc4-mlops-demo-969212888717-*`, sem `AdministratorAccess` ou
-`iam:*`. O workflow de deploy é o da issue #26; o teardown usa a mesma role
-protegida pelo environment `demo` e a mesma concorrência de ciclo de vida.
+`iam:*`. O workflow de deploy promove `develop` para `main` por PR e executa
+automaticamente no push de `main`; o teardown usa a mesma role OIDC, o
+`environment: demo` (com branch policy `main`) e a mesma concorrência de ciclo
+de vida.
 
 ## Encerramento e custo da demo (#27)
 

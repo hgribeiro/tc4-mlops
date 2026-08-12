@@ -322,6 +322,16 @@ O ZIP é somente o transporte local suportado para esta integração; não demon
 
 O bootstrap separado foi aplicado e permanece como fundação persistente: backend S3 privado/versionado com lockfile nativo, identities GitHub OIDC, roles revisadas, permissions boundary e AWS Budget. Ele não cria nem compartilha recursos da demo temporária. A demo AWS foi destruída após a validação; bootstrap e Budget persistem. Pré-requisitos de MFA root, ausência de Access Keys root, IAM Identity Center/SSO, migração/recovery de state e handoff de privilégio mínimo estão em [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
 
+## Integração, aprovação e ciclo de vida AWS
+
+- `develop` é a branch de integração; o PR `develop` → `main` é a superfície de aprovação humana auditável.
+- O PR executa qualidade e Terraform plan não mutante. A proteção de `main` exige os checks `quality / software, evidence, deck and Terraform` e `plan / non-mutating demo Terraform plan`, além de branch atualizada.
+- O merge manual do PR gera um push em `main`, que executa automaticamente qualidade, plan e deploy. PRs e pushes em `develop` nunca fazem deploy.
+- O deploy usa OIDC, `environment: demo`, policy de deployment somente para `main`, concorrência compartilhada com teardown e `LOW_QUOTA_MODE=true` enquanto a conta permanecer limitada. Não há segunda aprovação de environment após o merge.
+- O teardown continua manual com confirmação exata `DESTROY_DEMO`; o schedule só executa a limpeza de recursos expirados. Deploy e destroy não concorrem pelo state.
+
+A arquitetura, os gates e as instruções operacionais estão em [`docs/demo/runbook-operador.md`](docs/demo/runbook-operador.md) e [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
+
 ### Executar a primeira decisão demonstrável
 
 Sem instalar o pacote:
