@@ -219,15 +219,18 @@ resource "aws_iam_role_policy" "lambda_runtime" {
 }
 
 resource "aws_lambda_function" "api" {
-  count                          = var.image_uri == null ? 0 : 1
-  function_name                  = "${local.name_prefix}-api"
-  role                           = aws_iam_role.lambda.arn
-  package_type                   = "Image"
-  image_uri                      = var.image_uri
-  architectures                  = ["x86_64"]
-  timeout                        = 10
-  memory_size                    = 512
-  reserved_concurrent_executions = 2
+  count         = var.image_uri == null ? 0 : 1
+  function_name = "${local.name_prefix}-api"
+  role          = aws_iam_role.lambda.arn
+  package_type  = "Image"
+  image_uri     = var.image_uri
+  architectures = ["x86_64"]
+  timeout       = 10
+  memory_size   = 512
+  # New AWS accounts can retain the 10 unreserved account executions while a
+  # quota increase is pending. In that explicit temporary mode, omit this
+  # setting rather than attempting to reserve two executions.
+  reserved_concurrent_executions = var.low_quota_mode ? null : 2
 
   environment {
     variables = {

@@ -15,6 +15,10 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 region="${AWS_REGION:-us-east-1}"
 commit_sha="${COMMIT_SHA:-$(git rev-parse HEAD)}"
+# Keep the default/intended post-quota setting (reserved concurrency = 2).
+# Account 969212888717 is temporarily approved to omit it while the Lambda
+# ConcurrentExecutions quota is 10 and its increase request remains pending.
+low_quota_mode="${LOW_QUOTA_MODE:-false}"
 state_bucket="${STATE_BUCKET:-tc4-mlops-tfstate-969212888717-bootstrap25}"
 state_key="demo/terraform.tfstate"
 demo_dir="infrastructure/environments/demo"
@@ -23,6 +27,7 @@ backend_file="${demo_dir}/backend.hcl"
 account="$(aws sts get-caller-identity --profile "$AWS_PROFILE" --query Account --output text)"
 [[ "$account" == "969212888717" ]] || { echo "Unexpected AWS account: $account" >&2; exit 2; }
 [[ "$commit_sha" =~ ^[0-9a-f]{7,64}$ ]] || { echo "COMMIT_SHA must be a Git SHA" >&2; exit 2; }
+[[ "$low_quota_mode" == "true" || "$low_quota_mode" == "false" ]] || { echo "LOW_QUOTA_MODE must be true or false" >&2; exit 2; }
 
 cat > "$backend_file" <<EOF
 bucket = "$state_bucket"
@@ -34,7 +39,7 @@ EOF
 trap 'rm -f "$backend_file"' EXIT
 
 terraform -chdir="$demo_dir" init -reconfigure -backend-config=backend.hcl
-terraform -chdir="$demo_dir" apply -auto-approve -var="aws_region=$region" -var="commit_sha=$commit_sha"
+terraform -chdir="$demo_dir" apply -auto-approve -var="aws_region=$region" -var="commit_sha=$commit_sha" -var="low_quota_mode=$low_quota_mode"
 expires_at="$(terraform -chdir="$demo_dir" output -raw expires_at)"
 ecr_url="$(terraform -chdir="$demo_dir" output -raw ecr_repository_url)"
 cloudfront_url="$(terraform -chdir="$demo_dir" output -raw cloudfront_url)"
@@ -46,7 +51,7 @@ docker push "$ecr_url:$commit_sha"
 
 terraform -chdir="$demo_dir" apply -auto-approve \
   -var="aws_region=$region" -var="commit_sha=$commit_sha" -var="expires_at=$expires_at" \
-  -var="image_uri=$ecr_url:$commit_sha"
+  -var="low_quota_mode=$low_quota_mode" -var="image_uri=$ecr_url:$commit_sha"
 api_url="$(terraform -chdir="$demo_dir" output -raw api_url)"
 audit_bucket="$(terraform -chdir="$demo_dir" output -raw audit_bucket_name)"
 log_group="/aws/lambda/tc4-mlops-demo-${account}-api"
@@ -82,5 +87,5 @@ for forbidden in vehicle_simple home_complex guardrail_sensitive; do
   [[ "$(aws logs filter-log-events --log-group-name "$log_group" --filter-pattern "$forbidden" --profile "$AWS_PROFILE" --query 'length(events)' --output text)" == "0" ]] || { echo "Found forbidden payload marker in logs: $forbidden" >&2; exit 1; }
 done
 
-printf '\nCloudFront: %s\nAPI: %s\nECR: %s:%s\nAudit: s3://%s/decisions/\nState: s3://%s/%s\nExpiresAt: %s\n' \
-  "$cloudfront_url" "$api_url" "$ecr_url" "$commit_sha" "$audit_bucket" "$state_bucket" "$state_key" "$expires_at"
+printf '\nCloudFront: %s\nAPI: %s\nECR: %s:%s\nAudit: s3://%s/decisions/\nState: s3://%s/%s\nExpiresAt: %s\nLowQuotaMode: %s\n' \
+  "$cloudfront_url" "$api_url" "$ecr_url" "$commit_sha" "$audit_bucket" "$state_bucket" "$state_key" "$expires_at" "$low_quota_mode"

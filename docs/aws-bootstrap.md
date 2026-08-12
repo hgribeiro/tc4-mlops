@@ -105,6 +105,23 @@ COMMIT_SHA="$(git rev-parse HEAD)" AWS_PROFILE=coding-agent \
   scripts/deploy-demo-aws.sh
 ```
 
+### Exceção temporária de quota Lambda
+
+O modo padrão e pretendido usa `reserved_concurrent_executions = 2`. Enquanto a
+conta `969212888717` permanecer com `ConcurrentExecutions = 10` e a solicitação
+de aumento estiver pendente, a exceção aprovada é executada explicitamente com:
+
+```bash
+COMMIT_SHA="$(git rev-parse HEAD)" LOW_QUOTA_MODE=true AWS_PROFILE=coding-agent \
+  scripts/deploy-demo-aws.sh
+```
+
+Esse modo **omite** a concorrência reservada da função (preserva o hard cap da
+conta), mas não altera timeout de Lambda (10 segundos), throttle da API Gateway
+(5 req/s), burst (10), serviços ou capacidade. Após a aprovação da quota, não
+informe `LOW_QUOTA_MODE` (ou informe `false`) para restaurar a reserva padrão de
+2. A evidência operacional da exceção deve registrar a quota e o modo usados.
+
 O script exige a conta `969212888717`, usa `us-east-1` por padrão (configure
 `AWS_REGION` para mudar), cria `backend.hcl` ignorado temporário e usa somente
 a cadeia de credenciais do perfil. Ao final ele **mantém** a demo para os itens

@@ -52,7 +52,7 @@ run "uses_immutable_image_and_conservative_public_api_limits" {
 
   assert {
     condition     = aws_ecr_repository.api.image_tag_mutability == "IMMUTABLE" && aws_lambda_function.api[0].package_type == "Image" && aws_lambda_function.api[0].timeout == 10 && aws_lambda_function.api[0].reserved_concurrent_executions == 2
-    error_message = "The Lambda container must use immutable ECR tags, timeout 10 and reserved concurrency 2."
+    error_message = "The default Lambda container mode must use immutable ECR tags, timeout 10 and reserved concurrency 2."
   }
 
   assert {
@@ -63,6 +63,24 @@ run "uses_immutable_image_and_conservative_public_api_limits" {
   assert {
     condition     = strcontains(jsonencode(aws_apigatewayv2_api.http[0].cors_configuration), "cloudfront.net") && !strcontains(jsonencode(aws_apigatewayv2_api.http[0].cors_configuration), "*")
     error_message = "CORS must be restricted to the generated CloudFront origin."
+  }
+}
+
+run "low_quota_mode_omits_reserved_concurrency_without_relaxing_limits" {
+  command = apply
+
+  variables {
+    low_quota_mode = true
+  }
+
+  assert {
+    condition     = aws_lambda_function.api[0].timeout == 10 && aws_lambda_function.api[0].reserved_concurrent_executions == null
+    error_message = "The approved low-quota exception must omit, not set, Lambda reserved concurrency while retaining timeout 10."
+  }
+
+  assert {
+    condition     = aws_apigatewayv2_stage.default[0].default_route_settings[0].throttling_rate_limit == 5 && aws_apigatewayv2_stage.default[0].default_route_settings[0].throttling_burst_limit == 10
+    error_message = "Low-quota mode must retain the API Gateway 5/s and burst 10 limits."
   }
 }
 
