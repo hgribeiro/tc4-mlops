@@ -1,6 +1,6 @@
 # Bootstrap AWS persistente e identidades GitHub OIDC
 
-> **Estado desta documentação:** o código foi validado offline; este repositório **não afirma que o bootstrap foi aplicado em uma conta AWS**. A aplicação exige uma conta AWS preparada por uma pessoa autorizada.
+> **Estado desta documentação:** o bootstrap foi aplicado e permanece como fundação persistente da conta usada na validação. A demo temporária foi destruída; novas aplicações exigem uma pessoa autorizada, SSO e revisão humana.
 
 Este bootstrap é a fundação persistente da demonstração temporária descrita no ADR-0002. Ele cria somente:
 
@@ -74,9 +74,11 @@ Use os ARNs produzidos no output somente em workflows deste repositório. A trus
 - plan: `repo:hgribeiro/tc4-mlops:pull_request` ou `repo:hgribeiro/tc4-mlops:ref:refs/heads/main`;
 - deploy: `repo:hgribeiro/tc4-mlops:environment:demo`.
 
-Não há wildcard em `sub`, organização, repositório, ref ou ambiente. Proteja o environment GitHub `demo` com revisores obrigatórios **e restrinja as deployment branches a `main`** antes de ligar qualquer workflow ao ARN de deploy. O subject OIDC de um job que usa environment contém o environment, não a ref; a restrição de branch é, portanto, obrigatória na configuração do environment GitHub.
+Não há wildcard em `sub`, organização, repositório, ref ou ambiente. O environment GitHub `demo` deve manter a política de deployment branches personalizada somente para `main`; o subject OIDC de um job que usa environment contém o environment, não a ref, portanto essa restrição é obrigatória. A aprovação humana acontece no PR `develop` → `main`, protegido por checks; `demo` não adiciona uma segunda aprovação depois do merge.
 
-As duas roles são separadas. A role de plan só lê o state e manipula seu lockfile; a de deploy também pode atualizar somente o state do bootstrap e seu lockfile. Ambas usam a mesma permissions boundary. Elas deliberadamente **não** recebem `AdministratorAccess`, `iam:*`, `s3:*`, nem permissão oculta para criar recursos da demo.
+As duas roles são separadas. A role de plan lê o state separado da demo e manipula somente o lockfile dela; o plan usa `-refresh=false`, portanto não recebe acesso a recursos da demo nem pode escrever o state. A role de deploy atualiza somente o state separado e os recursos temporários de nomes concretos. Ambas usam a mesma permissions boundary. Elas deliberadamente **não** recebem `AdministratorAccess`, `iam:*`, `s3:*`, nem permissão para alterar a trust policy, provider OIDC, roles de automação ou proteções do bootstrap.
+
+O workflow [`.github/workflows/demo-quality-and-deploy.yml`](../.github/workflows/demo-quality-and-deploy.yml) executa qualidade, evidência oficial, deck, Docker e Terraform antes do plan. O PR `develop` → `main` executa os gates e o branch protection exige os contextos `quality / software, evidence, deck and Terraform` e `plan / non-mutating demo Terraform plan`, além de branch atualizada. O merge manual desse PR é a aprovação humana auditável; o push resultante em `main` executa o deploy automaticamente, assumindo somente `tc4-mlops-github-deploy` e declarando `environment: demo`. O `workflow_dispatch` continua disponível apenas para rerun explícito em `main`. O environment `demo` não possui required reviewers e mantém política de branch personalizada somente para `main`, evitando uma segunda aprovação após o merge. Não use `pull_request_target`, secrets de Access Key ou credenciais persistentes.
 
 Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alteração posterior deve ampliar de forma revisada **a policy da role e a permissions boundary**, com testes de invariantes para cada serviço. Não contorne essa etapa anexando uma policy ampla ou removendo a boundary.
 
@@ -87,7 +89,7 @@ Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alte
 - **Falha durante a migração:** mantenha o state local intacto, corrija a causa (permissão, nome ou região) e repita `init -migrate-state`. Não execute um segundo bootstrap apply que possa criar recursos fora do state original.
 - **Destroy acidental:** o bucket, provider OIDC, roles e boundary têm `prevent_destroy`; o bucket também tem `force_destroy = false`. Uma remoção persistente exige alteração explícita, revisão humana e confirmação de que nenhuma demo usa o backend.
 
-O bootstrap não guarda secrets em outputs. ARNs e o nome do bucket são identificadores operacionais, não credenciais. Revise regularmente as versões do state, a associação das roles e as proteções MFA/SSO com o administrador da conta.
+O bootstrap não guarda secrets em outputs. ARNs e o nome do bucket são identificadores operacionais, não credenciais. Revise regularmente as versões do state, a associação das roles, o Budget e as proteções MFA/SSO com o administrador da conta. O Budget persistente é consultivo e não é um hard stop.
 
 ## Demo AWS temporária (#25)
 
@@ -107,20 +109,14 @@ COMMIT_SHA="$(git rev-parse HEAD)" AWS_PROFILE=coding-agent \
 
 ### Exceção temporária de quota Lambda
 
-O modo padrão e pretendido usa `reserved_concurrent_executions = 2`. Enquanto a
-conta `969212888717` permanecer com `ConcurrentExecutions = 10` e a solicitação
-de aumento estiver pendente, a exceção aprovada é executada explicitamente com:
-
-```bash
-COMMIT_SHA="$(git rev-parse HEAD)" LOW_QUOTA_MODE=true AWS_PROFILE=coding-agent \
-  scripts/deploy-demo-aws.sh
-```
-
-Esse modo **omite** a concorrência reservada da função (preserva o hard cap da
-conta), mas não altera timeout de Lambda (10 segundos), throttle da API Gateway
-(5 req/s), burst (10), serviços ou capacidade. Após a aprovação da quota, não
-informe `LOW_QUOTA_MODE` (ou informe `false`) para restaurar a reserva padrão de
-2. A evidência operacional da exceção deve registrar a quota e o modo usados.
+Enquanto a conta `969212888717` permanecer com `ConcurrentExecutions = 10` e a
+solicitação de aumento estiver pendente, `LOW_QUOTA_MODE=true` é o padrão
+configurável tanto do script quanto do workflow. Ele **omite** a concorrência
+reservada da função (preserva o hard cap da conta), mas não altera timeout de
+Lambda (10 segundos), throttle da API Gateway (5 req/s), burst (10), serviços
+ou capacidade. Após a aprovação da quota, informe `LOW_QUOTA_MODE=false` para
+restaurar a reserva padrão de 2. A evidência operacional deve registrar a quota
+e o modo usados.
 
 O script exige a conta `969212888717`, usa `us-east-1` por padrão (configure
 `AWS_REGION` para mudar), cria `backend.hcl` ignorado temporário e usa somente
@@ -133,5 +129,17 @@ para a issue #27.
 A role OIDC de deploy continua com os mesmos subjects exatos. Sua policy e
 permissions boundary agora enumeram a chave `demo/terraform.tfstate` e os
 nomes concretos `tc4-mlops-demo-969212888717-*`, sem `AdministratorAccess` ou
-`iam:*`. A role ainda não é acionada por workflow nesta issue; esse fluxo é da
-issue #26.
+`iam:*`. O workflow de deploy promove `develop` para `main` por PR e executa
+automaticamente no push de `main`; o teardown usa a mesma role OIDC, o
+`environment: demo` (com branch policy `main`) e a mesma concorrência de ciclo
+de vida.
+
+## Encerramento e custo da demo (#27)
+
+O bootstrap também cria o AWS Budget mensal de USD 30 da demo, com alertas de
+custo realizado em 80% e 100%. O alerta não interrompe gastos automaticamente:
+créditos promocionais, Free Tier, impostos e a própria medição de Billing podem
+variar. O endereço operacional é mantido uma única vez na variável Terraform,
+e não deve ser reproduzido em logs ou artifacts. O procedimento, exportação
+minimizada com hashes, retenção de artifact e failsafe agendado estão em
+[Encerramento seguro da demo AWS](aws-demo-teardown.md).

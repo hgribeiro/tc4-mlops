@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
 # Creates and verifies the temporary AWS demo. It intentionally leaves demo
 # resources deployed for the follow-up teardown workflow; it never touches the
-# persistent bootstrap state or destroys it.
+# persistent bootstrap state or destroys it. Authentication is supplied by the
+# standard AWS SDK chain: a local SSO profile or GitHub Actions OIDC only.
 set -euo pipefail
+trap 'status=$?; echo "Deployment failed (exit ${status}); diagnostics are limited to command status and never include credentials or decision payloads." >&2; exit "$status"' ERR
 
-: "${AWS_PROFILE:=coding-agent}"
-export AWS_PROFILE
-if [[ "$AWS_PROFILE" != "coding-agent" ]]; then
-  echo "Use AWS_PROFILE=coding-agent for this authorized bootstrap/deploy." >&2
-  exit 2
+if [[ -n "${AWS_PROFILE:-}" ]]; then
+  export AWS_PROFILE
 fi
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 region="${AWS_REGION:-us-east-1}"
 commit_sha="${COMMIT_SHA:-$(git rev-parse HEAD)}"
-# Keep the default/intended post-quota setting (reserved concurrency = 2).
-# Account 969212888717 is temporarily approved to omit it while the Lambda
-# ConcurrentExecutions quota is 10 and its increase request remains pending.
-low_quota_mode="${LOW_QUOTA_MODE:-false}"
+# Account 969212888717 remains at a Lambda ConcurrentExecutions quota of 10.
+# Keep the approved safe exception by default; false restores reservation of 2
+# only after the quota has been raised.
+low_quota_mode="${LOW_QUOTA_MODE:-true}"
 state_bucket="${STATE_BUCKET:-tc4-mlops-tfstate-969212888717-bootstrap25}"
 state_key="demo/terraform.tfstate"
 # Every deployment refreshes the temporary-demo expiry unless an evidence run
@@ -27,7 +26,7 @@ expires_at="${EXPIRES_AT:-$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')}"
 demo_dir="infrastructure/environments/demo"
 backend_file="${demo_dir}/backend.hcl"
 
-account="$(aws sts get-caller-identity --profile "$AWS_PROFILE" --query Account --output text)"
+account="$(aws sts get-caller-identity --query Account --output text)"
 [[ "$account" == "969212888717" ]] || { echo "Unexpected AWS account: $account" >&2; exit 2; }
 [[ "$commit_sha" =~ ^[0-9a-f]{7,64}$ ]] || { echo "COMMIT_SHA must be a Git SHA" >&2; exit 2; }
 [[ "$low_quota_mode" == "true" || "$low_quota_mode" == "false" ]] || { echo "LOW_QUOTA_MODE must be true or false" >&2; exit 2; }
@@ -56,7 +55,7 @@ fi
 cloudfront_url="$(terraform -chdir="$demo_dir" output -raw cloudfront_url)"
 distribution_id="$(terraform -chdir="$demo_dir" output -raw cloudfront_distribution_id)"
 
-aws ecr get-login-password --region "$region" --profile "$AWS_PROFILE" | docker login --username AWS --password-stdin "${ecr_url%%/*}"
+aws ecr get-login-password --region "$region" | docker login --username AWS --password-stdin "${ecr_url%%/*}"
 docker build --platform linux/amd64 -f Dockerfile.lambda -t "$ecr_url:$commit_sha" .
 docker push "$ecr_url:$commit_sha"
 
@@ -73,9 +72,9 @@ log_group="/aws/lambda/tc4-mlops-demo-${account}-api"
   DEMO_API_URL="$api_url" npm run build
 )
 aws s3 sync presentation/dist "s3://$(terraform -chdir="$demo_dir" output -raw presentation_bucket_name)/" \
-  --delete --only-show-errors --profile "$AWS_PROFILE" --region "$region"
-invalidation_id="$(aws cloudfront create-invalidation --distribution-id "$distribution_id" --paths '/*' --profile "$AWS_PROFILE" --query 'Invalidation.Id' --output text)"
-aws cloudfront wait invalidation-completed --distribution-id "$distribution_id" --id "$invalidation_id" --profile "$AWS_PROFILE"
+  --delete --only-show-errors --region "$region"
+invalidation_id="$(aws cloudfront create-invalidation --distribution-id "$distribution_id" --paths '/*' --query 'Invalidation.Id' --output text)"
+aws cloudfront wait invalidation-completed --distribution-id "$distribution_id" --id "$invalidation_id"
 
 curl --fail --silent --show-error --retry 12 --retry-delay 5 "$cloudfront_url" >/dev/null
 curl --fail --silent --show-error --retry 12 --retry-delay 5 "$api_url/health" >/dev/null
@@ -90,14 +89,28 @@ for policy in baseline adaptive; do
   done
 done
 
-object_count="$(aws s3api list-objects-v2 --bucket "$audit_bucket" --prefix decisions/ --profile "$AWS_PROFILE" --query 'length(Contents[])' --output text)"
+object_count="$(aws s3api list-objects-v2 --bucket "$audit_bucket" --prefix decisions/ --query 'length(Contents[])' --output text)"
 [[ "$object_count" -ge 6 ]] || { echo "Expected at least six audit objects; found $object_count" >&2; exit 1; }
 # The API accepts only IDs, but this independently checks that scenario payloads
 # did not leak into the Lambda log stream.
 for forbidden in vehicle_simple home_complex guardrail_sensitive; do
-  marker_events="$(aws logs filter-log-events --log-group-name "$log_group" --filter-pattern "$forbidden" --profile "$AWS_PROFILE" --output json | python -c 'import json, sys; print(len(json.load(sys.stdin)["events"]))')"
+  marker_events="$(aws logs filter-log-events --log-group-name "$log_group" --filter-pattern "$forbidden" --output json | python -c 'import json, sys; print(len(json.load(sys.stdin)["events"]))')"
   [[ "$marker_events" == "0" ]] || { echo "Found forbidden payload marker in logs: $forbidden" >&2; exit 1; }
 done
 
-printf '\nCloudFront: %s\nAPI: %s\nECR: %s:%s\nAudit: s3://%s/decisions/\nState: s3://%s/%s\nExpiresAt: %s\nLowQuotaMode: %s\n' \
-  "$cloudfront_url" "$api_url" "$ecr_url" "$commit_sha" "$audit_bucket" "$state_bucket" "$state_key" "$expires_at" "$low_quota_mode"
+policy_version="$(python -c 'import json; print(json.load(open("artifacts/official-experiment/policy.json"))["policy_version"])')"
+summary="CloudFront: ${cloudfront_url}
+API: ${api_url}
+Commit: ${commit_sha}
+Policy version: ${policy_version}
+ExpiresAt: ${expires_at}"
+printf '\n%s\n' "$summary"
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  {
+    echo "## Demo deployment passed smoke tests"
+    echo
+    echo '```text'
+    printf '%s\n' "$summary"
+    echo '```'
+  } >> "$GITHUB_STEP_SUMMARY"
+fi

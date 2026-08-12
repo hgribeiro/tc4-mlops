@@ -11,7 +11,7 @@ O projeto simula uma plataforma de experimentação adaptativa para a persona **
 - [Objetivo](#objetivo)
 - [Escopo do MVP](#escopo-do-mvp)
 - [Arquitetura conceitual](#arquitetura-conceitual)
-- [Arquitetura-alvo Azure](#arquitetura-alvo-azure)
+- [Arquitetura AWS executada e validada](#arquitetura-aws-executada-e-validada)
 - [Dados](#dados)
 - [Golden Set oficial](#golden-set-oficial)
 - [MLOps e governança](#mlops-e-governança)
@@ -37,7 +37,7 @@ Ajudar uma unidade de Empréstimos com Garantia a aumentar **Propostas Qualifica
 - completude de contexto;
 - guardrails;
 - humano no loop;
-- delayed rewards;
+- evolução futura de recompensas atrasadas (não provisionada no MVP);
 - avaliação offline contra baseline.
 
 A decisão não é “qual oferta vender”, mas sim qual ação de jornada tomar com segurança: simular, educar, solicitar documentação, encaminhar para especialista ou não ofertar naquele momento.
@@ -107,11 +107,34 @@ Contrato mínimo esperado de uma decisão:
 }
 ```
 
-## Arquitetura-alvo Azure
+## Arquitetura AWS executada e validada
 
-Em uma implantação-alvo, **Azure Data Factory** faria a ingestão agendada e **Azure Data Lake Storage Gen2** separaria dados brutos, preparados e artefatos sintéticos. **Azure Machine Learning**, com tracking compatível com MLflow, executaria e registraria experimentos; imagens versionadas ficariam no **Azure Container Registry** e a CLI seria empacotada como serviço stateless no **Azure Container Apps**. **Azure Monitor** e **Application Insights** concentrariam métricas, traces e alertas, sempre com logs minimizados.
+A arquitetura cloud efetivamente executada e validada foi **AWS**, em um ambiente temporário e sintético. O deploy histórico do #25 usou CloudFront → S3 privado para o deck e API Gateway HTTP → Lambda containerizada (imagem ECR) → S3 privado para auditoria, com CloudWatch minimizado, alarmes e dashboard. O smoke ponta a ponta passou para as três cenas e os dois modos de política; o teardown do #27 confirmou que os recursos temporários foram destruídos. Hoje não há URL AWS ativa.
 
-O laboratório local corresponde ao ambiente de desenvolvimento; um workspace e uma conta de armazenamento isolados formariam o ambiente de teste; uma assinatura separada representaria a **produção simulada**, sem clientes ou crédito reais. **Managed Identity** daria acesso entre serviços e **Azure Key Vault** guardaria segredos, sem credenciais no código. A promoção de um `policy.json` exigiria testes, Golden Set, comparação no MLflow e aprovação humana de produto e risco/compliance simulado. Regressão, quebra de Guardrail ou log incompleto pausaria a política; o rollback removeria a versão adaptativa e restauraria o Baseline Determinístico versionado.
+```mermaid
+flowchart LR
+  B[Navegador] --> CF[CloudFront HTTPS]
+  CF --> PS3[S3 privado · deck]
+  B --> AG[API Gateway HTTP]
+  AG --> L[Lambda containerizada]
+  L -. imagem imutável .-> ECR[ECR]
+  L --> AS3[S3 privado · auditoria minimizada]
+  L --> CW[CloudWatch · métricas/logs minimizados]
+  BS[Bootstrap persistente · S3 state + OIDC + Budget] -. ciclo separado .-> L
+```
+
+A integração local reproduziu apenas API Gateway REST → Lambda ZIP → S3 no LocalStack Community; não é prova da arquitetura AWS. Delayed Rewards não são uma capacidade provisionada: EventBridge → SQS → worker e um ledger de recompensa são apenas evolução futura, sujeita a nova decisão, implementação e validação.
+
+### Equivalência Azure (conceitual, não validada)
+
+| AWS executada | Equivalente Azure conceitual | Validação neste repositório |
+| --- | --- | --- |
+| CloudFront + S3 privado (deck) | Front Door + Blob Storage privado | Não implantado nem validado no Azure |
+| API Gateway + Lambda/ECR | API Management + Azure Functions/Container Registry | Não implantado nem validado no Azure |
+| S3 auditoria + CloudWatch | Blob Storage + Azure Monitor/Application Insights | Não implantado nem validado no Azure |
+| OIDC GitHub + IAM | Federated Identity Credentials + RBAC | Não implantado nem validado no Azure |
+
+Isto não é multicloud: AWS é a única arquitetura cloud executada/validada; Azure é somente uma equivalência conceitual. O diagrama completo, limites e proveniência estão em [`docs/architecture-aws.md`](docs/architecture-aws.md) e no [ADR-0002](docs/adr/0002-aws-como-arquitetura-executavel-do-mvp.md).
 
 ## Dados
 
@@ -297,7 +320,17 @@ O ZIP é somente o transporte local suportado para esta integração; não demon
 
 ## Bootstrap AWS persistente
 
-O bootstrap separado cria somente o backend S3 privado/versionado com lockfile nativo e as identities GitHub OIDC; ele não cria nem compartilha state com a demo temporária. O código foi validado offline, mas **não foi aplicado em uma conta AWS**. Pré-requisitos de MFA root, ausência de Access Keys root, IAM Identity Center/SSO, migração/recovery de state e o handoff de privilégio mínimo estão em [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
+O bootstrap separado foi aplicado e permanece como fundação persistente: backend S3 privado/versionado com lockfile nativo, identities GitHub OIDC, roles revisadas, permissions boundary e AWS Budget. Ele não cria nem compartilha recursos da demo temporária. A demo AWS foi destruída após a validação; bootstrap e Budget persistem. Pré-requisitos de MFA root, ausência de Access Keys root, IAM Identity Center/SSO, migração/recovery de state e handoff de privilégio mínimo estão em [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
+
+## Integração, aprovação e ciclo de vida AWS
+
+- `develop` é a branch de integração; o PR `develop` → `main` é a superfície de aprovação humana auditável.
+- O PR executa qualidade e Terraform plan não mutante. A proteção de `main` exige os checks `quality / software, evidence, deck and Terraform` e `plan / non-mutating demo Terraform plan`, além de branch atualizada.
+- O merge manual do PR gera um push em `main`, que executa automaticamente qualidade, plan e deploy. PRs e pushes em `develop` nunca fazem deploy.
+- O deploy usa OIDC, `environment: demo`, policy de deployment somente para `main`, concorrência compartilhada com teardown e `LOW_QUOTA_MODE=true` enquanto a conta permanecer limitada. Não há segunda aprovação de environment após o merge.
+- O teardown continua manual com confirmação exata `DESTROY_DEMO`; o schedule só executa a limpeza de recursos expirados. Deploy e destroy não concorrem pelo state.
+
+A arquitetura, os gates e as instruções operacionais estão em [`docs/demo/runbook-operador.md`](docs/demo/runbook-operador.md) e [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
 
 ### Executar a primeira decisão demonstrável
 
@@ -472,7 +505,7 @@ O PDF oficial simplificado organiza a entrega nas etapas 0–8. Esta tabela apon
 | 3 — Baseline e adaptativo | baseline fixo, Thompson Sampling, priors e comparação multi-seed | `PYTHONPATH=src python -m responsible_next_step experiment --input tests/fixtures/bank-full-small.csv --output-dir /tmp/rns-experiment --seeds 11,29,47 --horizon 400 --tracking-uri sqlite:////tmp/rns-mlflow.db --pretty` |
 | 4 — Avaliação | métricas e Golden Set de cinco casos resumido acima | `PYTHONPATH=src python -m responsible_next_step evaluate-golden-set --input data/golden_set/evaluation_cases.jsonl --audit-log-dir /tmp/rns-golden --pretty` |
 | 5 — Interface | CLI de decisão, Reason Codes, `policy_version`, Guardrails e log | `PYTHONPATH=src python -m responsible_next_step decide --input examples/synthetic-customers/vehicle-simple.json --audit-log-dir /tmp/rns-decisions --pretty` |
-| 6 — Nuvem | dois parágrafos de arquitetura-alvo Azure neste README | Revisão da seção [Arquitetura-alvo Azure](#arquitetura-alvo-azure) |
+| 6 — Nuvem | arquitetura AWS executada, LocalStack e equivalência Azure conceitual | Revisão de [`docs/architecture-aws.md`](docs/architecture-aws.md) e `terraform validate` |
 | 7 — MLOps | MLflow local, geração de `report.json`/`policy.json` e rollback documentado | `mlflow ui --backend-store-uri sqlite:////tmp/rns-mlflow.db --port 5000` |
 | 8 — Demo Day | roteiro de até cinco minutos e contingência versionados | Revisão de [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md) |
 
@@ -492,7 +525,7 @@ Abra `presentation/dist/index.html` em Chrome/Edge atual, inclusive sem rede. `n
 
 ## Roteiro da demo
 
-O roteiro final, com timebox de **4min50s**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). O relatório, a política e o manifesto oficiais da base completa estão versionados em `artifacts/official-experiment/`; dados brutos e logs de execução não estão.
+O roteiro final, com fluxo principal de **até cinco minutos**, falas, comandos, três cenas responsáveis e plano de contingência está em [`docs/demo/roteiro-pitch-5-minutos.md`](docs/demo/roteiro-pitch-5-minutos.md). O runbook reproduzível para outro operador está em [`docs/demo/runbook-operador.md`](docs/demo/runbook-operador.md). As saídas resumidas previamente salvas ficam em [`docs/demo/saidas-contingencia.md`](docs/demo/saidas-contingencia.md). O aceite final, commits e hashes estão em [`docs/demo/acceptance-final.md`](docs/demo/acceptance-final.md). O relatório, a política e o manifesto oficiais da base completa estão versionados em `artifacts/official-experiment/`; dados brutos e logs de execução não estão.
 
 ## Qualidade de engenharia
 
@@ -548,7 +581,7 @@ Próximas entregas recomendadas:
 - [x] registrar a comparação adaptativa em MLflow local;
 - [x] consolidar no README a governança mínima, a postura simulada de LGPD, o Humano no Loop e o rollback da demo;
 - [ ] evoluir Model Card, System Card e plano LGPD como artefatos separados, sem bloquear o MVP demonstrável;
-- [x] documentar arquitetura-alvo Azure concisa e plano de MLOps;
+- [x] documentar arquitetura AWS executada, equivalência Azure conceitual e limites de validação;
 - [x] criar roteiro de demo de até cinco minutos para Lary.
 
 ## Limitações e não-objetivos

@@ -1,8 +1,9 @@
 mock_provider "aws" {}
 
 variables {
-  aws_region        = "us-east-1"
-  state_bucket_name = "tc4-mlops-tfstate-123456789012-example"
+  aws_region         = "us-east-1"
+  state_bucket_name  = "tc4-mlops-tfstate-123456789012-example"
+  budget_alert_email = "budget-alert@example.invalid"
 }
 
 override_resource {
@@ -65,6 +66,20 @@ run "keeps_persistent_state_private_versioned_and_non_destructible" {
   }
 }
 
+run "creates_monthly_advisory_budget_without_a_spend_stop" {
+  command = apply
+
+  assert {
+    condition     = aws_budgets_budget.monthly_demo_cost.limit_amount == "30" && aws_budgets_budget.monthly_demo_cost.limit_unit == "USD" && aws_budgets_budget.monthly_demo_cost.time_unit == "MONTHLY"
+    error_message = "O budget da demo deve ser mensal e limitado a USD 30."
+  }
+
+  assert {
+    condition     = length(aws_budgets_budget.monthly_demo_cost.notification) == 2 && alltrue([for notification in aws_budgets_budget.monthly_demo_cost.notification : notification.notification_type == "ACTUAL" && notification.threshold_type == "PERCENTAGE"])
+    error_message = "O budget deve enviar apenas alertas de custo realizado em percentual."
+  }
+}
+
 run "restricts_oidc_to_repository_refs_and_demo_environment" {
   command = apply
 
@@ -98,6 +113,14 @@ run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_op
       !(contains(statement.Action, "s3:PutObject") && contains(statement.Resource, "arn:aws:s3:::tc4-mlops-tfstate-123456789012-example/bootstrap/terraform.tfstate"))
     ])
     error_message = "Plan deve gravar somente o lockfile, não o state."
+  }
+
+  assert {
+    condition = alltrue([
+      for statement in jsondecode(aws_iam_role_policy.plan_backend.policy).Statement :
+      !(contains(statement.Action, "s3:PutObject") && contains(statement.Resource, "arn:aws:s3:::tc4-mlops-tfstate-123456789012-example/demo/terraform.tfstate"))
+    ]) && strcontains(aws_iam_role_policy.plan_backend.policy, "demo/terraform.tfstate.tflock")
+    error_message = "Plan pode bloquear a demo, mas nunca gravar seu state."
   }
 
   assert {

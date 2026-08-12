@@ -12,7 +12,6 @@ locals {
   deploy_subjects = [
     "repo:${local.github_repo}:environment:demo",
   ]
-
   state_object_arn = "${aws_s3_bucket.terraform_state.arn}/${var.state_key}"
   lock_object_arn  = "${aws_s3_bucket.terraform_state.arn}/${var.state_key}.tflock"
   demo_state_key   = "demo/terraform.tfstate"
@@ -154,19 +153,54 @@ resource "aws_iam_policy" "automation_boundary" {
         Effect = "Allow"
         Action = [
           "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE",
-          "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation",
-          "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms",
-          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage",
-          "lambda:CreateFunction", "lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:TagResource", "lambda:UntagResource",
-          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters",
-          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
-          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:PassRole"
+          "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListDistributions", "cloudfront:ListOriginAccessControls", "cloudfront:ListTagsForResource",
+          "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources",
+          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
+          "lambda:CreateFunction", "lambda:GetFunction", "lambda:GetPolicy", "lambda:ListVersionsByFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:ListTags", "lambda:TagResource", "lambda:UntagResource",
+          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource",
+          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
         ]
+        Resource = "*"
+      },
+      {
+        Sid      = "ReadPersistentTeardownSurvivors"
+        Effect   = "Allow"
+        Action   = ["budgets:ViewBudget", "budgets:ViewNotificationsForBudget", "budgets:ViewSubscribersForNotification", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
         Resource = "*"
       },
     ]
   })
   tags = local.common_tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_budgets_budget" "monthly_demo_cost" {
+  # Budget alerts are advisory notifications, never a hard spending stop.
+  name         = "tc4-mlops-demo-monthly-usd30"
+  budget_type  = "COST"
+  limit_amount = "30"
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.budget_alert_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.budget_alert_email]
+  }
 
   lifecycle {
     prevent_destroy = true
@@ -254,6 +288,28 @@ resource "aws_iam_role_policy" "plan_backend" {
           }
         }
       },
+      # A Terraform plan writes only its native lockfile. Its plan uses
+      # -refresh=false, so it needs no permission to inspect or alter demo
+      # resources and cannot write the demo state.
+      {
+        Sid      = "ReadDemoState"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion"]
+        Resource = [local.demo_state_arn]
+      },
+      {
+        Sid      = "LockDemoState"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = [local.demo_lock_arn]
+      },
+      {
+        Sid       = "ListDemoState"
+        Effect    = "Allow"
+        Action    = ["s3:ListBucket"]
+        Resource  = [aws_s3_bucket.terraform_state.arn]
+        Condition = { StringLike = { "s3:prefix" = [local.demo_state_key, "${local.demo_state_key}.tflock"] } }
+      },
     ]
   })
 }
@@ -285,32 +341,38 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Sid    = "OperateConcreteDataAndRuntimeResources"
         Effect = "Allow"
         Action = [
-          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
+          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
         ]
         Resource = local.demo_s3_arns
       },
       {
         Sid      = "OperateConcreteEcrAndLambda"
         Effect   = "Allow"
-        Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"]
+        Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource"]
         Resource = [local.demo_ecr_arn]
       },
       {
         Sid      = "OperateConcreteLambda"
         Effect   = "Allow"
-        Action   = ["lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:TagResource", "lambda:UntagResource"]
+        Action   = ["lambda:GetFunction", "lambda:GetPolicy", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:ListTags", "lambda:TagResource", "lambda:UntagResource"]
         Resource = [local.demo_lambda_arn]
       },
       {
         Sid      = "ManageOnlyDemoRuntimeRole"
         Effect   = "Allow"
-        Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:PassRole"]
+        Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"]
         Resource = [local.demo_runtime_role]
+      },
+      {
+        Sid      = "ReadPersistentTeardownSurvivors"
+        Effect   = "Allow"
+        Action   = ["budgets:ViewBudget", "budgets:ViewNotificationsForBudget", "budgets:ViewSubscribersForNotification", "iam:GetRole", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
+        Resource = "*"
       },
       {
         Sid      = "CreateAndReadOnlyRequiredControlPlaneResources"
         Effect   = "Allow"
-        Action   = ["s3:CreateBucket", "ecr:CreateRepository", "ecr:GetAuthorizationToken", "lambda:CreateFunction", "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation"]
+        Action   = ["s3:CreateBucket", "ecr:CreateRepository", "ecr:GetAuthorizationToken", "lambda:CreateFunction", "lambda:ListVersionsByFunction", "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource", "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources", "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListDistributions", "cloudfront:ListOriginAccessControls", "cloudfront:ListTagsForResource"]
         Resource = "*"
       }
     ]
