@@ -9,6 +9,7 @@ presentation/dist/
 presentation/test-results/
 presentation/playwright-report/
 **/.terraform/
+infrastructure/environments/bootstrap/backend.hcl
 *.tfstate
 *.tfstate.*
 .build/

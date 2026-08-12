@@ -18,6 +18,7 @@ O projeto simula uma plataforma de experimentação adaptativa para a persona **
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Como começar](#como-começar)
 - [Cloud shape local com LocalStack](#cloud-shape-local-com-localstack)
+- [Bootstrap AWS persistente](#bootstrap-aws-persistente)
 - [Resultados reproduzíveis](#resultados-reproduzíveis)
 - [Mapa dos entregáveis oficiais](#mapa-dos-entregáveis-oficiais)
 - [Roteiro da demo](#roteiro-da-demo)
@@ -293,6 +294,10 @@ Ao terminar, destrua o ambiente e o volume LocalStack:
 ```
 
 O ZIP é somente o transporte local suportado para esta integração; não demonstra paridade com Lambda por imagem/ECR da AWS. O transporte de container/ECR real permanece fora deste escopo. Detalhes de pré-requisitos, validação Terraform e limites explícitos de paridade estão em [`docs/localstack.md`](docs/localstack.md). CloudFront, OIDC, IAM de conta real, observabilidade/alarmes e outros comportamentos não confiáveis na edição free não são simulados como prova: exigem testes de integração AWS futuros.
+
+## Bootstrap AWS persistente
+
+O bootstrap separado cria somente o backend S3 privado/versionado com lockfile nativo e as identities GitHub OIDC; ele não cria nem compartilha state com a demo temporária. O código foi validado offline, mas **não foi aplicado em uma conta AWS**. Pré-requisitos de MFA root, ausência de Access Keys root, IAM Identity Center/SSO, migração/recovery de state e o handoff de privilégio mínimo estão em [`docs/aws-bootstrap.md`](docs/aws-bootstrap.md).
 
 ### Executar a primeira decisão demonstrável
 
