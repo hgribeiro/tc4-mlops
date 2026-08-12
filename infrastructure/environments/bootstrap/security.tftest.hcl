@@ -143,43 +143,22 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   command = apply
 
   assert {
-    condition = contains(
-      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
-      "s3:GetBucketCORS"
-      ) && contains(
-      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
-      "arn:aws:s3:::tc4-mlops-demo-969212888717-presentation"
-      ) && contains(
-      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
-      "arn:aws:s3:::tc4-mlops-demo-969212888717-audit"
-    )
-    error_message = "Deploy deve ler CORS somente nos dois buckets concretos da demo durante refresh."
+    condition = alltrue([
+      for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
+      length([for statement in policy : statement if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(local.demo_s3_arns)
+    ])
+    error_message = "As duas camadas devem permitir exatamente os reads S3 do refresh somente nos buckets concretos da demo."
   }
 
   assert {
-    condition = contains(
-      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "ManageOnlyDemoRuntimeRole"]),
-      "iam:ListAttachedRolePolicies"
-      ) && contains(
-      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "ManageOnlyDemoRuntimeRole"]),
-      "arn:aws:iam::969212888717:role/tc4-mlops-demo-969212888717-lambda"
-    )
-    error_message = "Deploy deve listar policies anexadas somente na role runtime concreta durante refresh."
-  }
-
-  assert {
-    condition = contains(
-      one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]),
-      "s3:GetBucketCORS"
-    )
-    error_message = "A boundary deve permitir o read CORS exigido pelo provider."
-  }
-
-  assert {
-    condition = contains(
-      one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]),
-      "iam:ListAttachedRolePolicies"
-    )
-    error_message = "A boundary deve permitir listar policies anexadas exigido pelo provider."
+    condition = alltrue([
+      for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
+      length([for statement in policy : statement if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"])) == toset(["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"])) == toset([local.demo_runtime_role])
+    ])
+    error_message = "As duas camadas devem permitir exatamente os reads IAM do refresh somente na role runtime concreta."
   }
 }

@@ -158,10 +158,24 @@ resource "aws_iam_policy" "automation_boundary" {
           "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
           "lambda:CreateFunction", "lambda:GetFunction", "lambda:GetPolicy", "lambda:ListVersionsByFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:ListTags", "lambda:TagResource", "lambda:UntagResource",
           "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource",
-          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:GetBucketCORS", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
-          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
+          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
         ]
         Resource = "*"
+      },
+      {
+        Sid    = "ReadConcreteDemoBucketProviderRefreshState"
+        Effect = "Allow"
+        # aws_s3_bucket Read in AWS provider v6.58.0 unconditionally makes
+        # these legacy configuration reads during refresh/destroy.
+        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]
+        Resource = local.demo_s3_arns
+      },
+      {
+        Sid      = "ReadConcreteDemoRuntimeRoleProviderRefreshState"
+        Effect   = "Allow"
+        Action   = ["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]
+        Resource = [local.demo_runtime_role]
       },
       {
         Sid      = "ReadPersistentTeardownSurvivors"
@@ -341,9 +355,22 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Sid    = "OperateConcreteDataAndRuntimeResources"
         Effect = "Allow"
         Action = [
-          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:GetBucketCORS", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
+          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
         ]
         Resource = local.demo_s3_arns
+      },
+      {
+        Sid    = "ReadConcreteDemoBucketProviderRefreshState"
+        Effect = "Allow"
+        # This mirrors the boundary and deliberately excludes any non-demo S3 resource.
+        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]
+        Resource = local.demo_s3_arns
+      },
+      {
+        Sid      = "ReadConcreteDemoRuntimeRoleProviderRefreshState"
+        Effect   = "Allow"
+        Action   = ["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]
+        Resource = [local.demo_runtime_role]
       },
       {
         Sid      = "OperateConcreteEcrAndLambda"
@@ -360,7 +387,7 @@ resource "aws_iam_role_policy" "deploy_demo" {
       {
         Sid      = "ManageOnlyDemoRuntimeRole"
         Effect   = "Allow"
-        Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"]
+        Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"]
         Resource = [local.demo_runtime_role]
       },
       {
