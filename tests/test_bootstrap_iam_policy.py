@@ -19,6 +19,16 @@ RUNTIME_ROLE_REFRESH_READS = {
     "iam:ListAttachedRolePolicies",
     "iam:ListInstanceProfilesForRole",
 }
+TEARDOWN_DELETES = {
+    "ManageConcreteDemoEcrLifecyclePolicy": (
+        {"ecr:DeleteLifecyclePolicy"},
+        "[local.demo_ecr_arn]",
+    ),
+    "ManageConcreteDemoLogGroup": (
+        {"logs:DeleteLogGroup"},
+        "[local.demo_log_group_arn]",
+    ),
+}
 
 
 def _resource_block(source: str, header: str) -> str:
@@ -63,3 +73,19 @@ def test_s3_encryption_refresh_uses_the_iam_action_for_get_bucket_encryption():
     source = BOOTSTRAP.read_text()
     assert '"s3:GetBucketEncryption"' not in source
     assert '"s3:GetEncryptionConfiguration"' in source
+
+
+def test_evidenced_teardown_deletes_are_exact_and_scoped_in_both_policy_layers():
+    source = BOOTSTRAP.read_text()
+    boundary = _resource_block(source, 'resource "aws_iam_policy" "automation_boundary"')
+    deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
+
+    for policy in (boundary, deploy_policy):
+        for sid, (expected_actions, expected_resource) in TEARDOWN_DELETES.items():
+            actions, resource = _statement_actions_and_resource(policy, sid)
+            assert actions == expected_actions
+            assert resource == expected_resource
+
+    assert '"logs:DeleteLogGroup"' not in _statement_actions_and_resource(
+        boundary, "ManageNamedTemporaryDemoResources"
+    )[0]

@@ -161,4 +161,17 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
     ])
     error_message = "As duas camadas devem permitir exatamente os reads IAM do refresh somente na role runtime concreta."
   }
+
+  assert {
+    condition = alltrue([
+      for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
+      length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset(["ecr:DeleteLifecyclePolicy"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset([local.demo_ecr_arn]) &&
+      length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoLogGroup"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoLogGroup"])) == toset(["logs:DeleteLogGroup"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "ManageConcreteDemoLogGroup"])) == toset([local.demo_log_group_arn])
+    ])
+    error_message = "As duas camadas devem permitir os dois deletes evidenciados somente nos recursos concretos da demo."
+  }
 }

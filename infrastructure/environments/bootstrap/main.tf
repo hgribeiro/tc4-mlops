@@ -157,11 +157,23 @@ resource "aws_iam_policy" "automation_boundary" {
           "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources",
           "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
           "lambda:CreateFunction", "lambda:GetFunction", "lambda:GetPolicy", "lambda:ListVersionsByFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:ListTags", "lambda:TagResource", "lambda:UntagResource",
-          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource",
+          "logs:CreateLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource",
           "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
           "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
         ]
         Resource = "*"
+      },
+      {
+        Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
+        Effect   = "Allow"
+        Action   = ["ecr:DeleteLifecyclePolicy"]
+        Resource = [local.demo_ecr_arn]
+      },
+      {
+        Sid      = "ManageConcreteDemoLogGroup"
+        Effect   = "Allow"
+        Action   = ["logs:DeleteLogGroup"]
+        Resource = [local.demo_log_group_arn]
       },
       {
         Sid    = "ReadConcreteDemoBucketProviderRefreshState"
@@ -373,10 +385,22 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Resource = [local.demo_runtime_role]
       },
       {
+        Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
+        Effect   = "Allow"
+        Action   = ["ecr:DeleteLifecyclePolicy"]
+        Resource = [local.demo_ecr_arn]
+      },
+      {
         Sid      = "OperateConcreteEcrAndLambda"
         Effect   = "Allow"
         Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource"]
         Resource = [local.demo_ecr_arn]
+      },
+      {
+        Sid      = "ManageConcreteDemoLogGroup"
+        Effect   = "Allow"
+        Action   = ["logs:DeleteLogGroup"]
+        Resource = [local.demo_log_group_arn]
       },
       {
         Sid      = "OperateConcreteLambda"
