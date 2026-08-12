@@ -138,3 +138,48 @@ run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_op
     error_message = "A boundary deve permitir o state separado da demo sem liberar IAM amplo."
   }
 }
+
+run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
+  command = apply
+
+  assert {
+    condition = contains(
+      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
+      "s3:GetBucketCORS"
+      ) && contains(
+      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
+      "arn:aws:s3:::tc4-mlops-demo-969212888717-presentation"
+      ) && contains(
+      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteDataAndRuntimeResources"]),
+      "arn:aws:s3:::tc4-mlops-demo-969212888717-audit"
+    )
+    error_message = "Deploy deve ler CORS somente nos dois buckets concretos da demo durante refresh."
+  }
+
+  assert {
+    condition = contains(
+      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "ManageOnlyDemoRuntimeRole"]),
+      "iam:ListAttachedRolePolicies"
+      ) && contains(
+      one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "ManageOnlyDemoRuntimeRole"]),
+      "arn:aws:iam::969212888717:role/tc4-mlops-demo-969212888717-lambda"
+    )
+    error_message = "Deploy deve listar policies anexadas somente na role runtime concreta durante refresh."
+  }
+
+  assert {
+    condition = contains(
+      one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]),
+      "s3:GetBucketCORS"
+    )
+    error_message = "A boundary deve permitir o read CORS exigido pelo provider."
+  }
+
+  assert {
+    condition = contains(
+      one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]),
+      "iam:ListAttachedRolePolicies"
+    )
+    error_message = "A boundary deve permitir listar policies anexadas exigido pelo provider."
+  }
+}
