@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from typing import Any, Mapping
 
-from responsible_next_step.audit import LocalAuditPersistence
+from responsible_next_step.audit import LocalAuditPersistence, S3AuditPersistence
 from responsible_next_step.engine import decide
 
 
@@ -89,6 +89,33 @@ class LocalAuditPersistenceContractTest(AuditPersistenceContract, unittest.TestC
 
     def read_persisted_record(self, reference: str) -> dict[str, Any]:
         return json.loads(Path(reference).read_text(encoding="utf-8").strip())
+
+
+class RecordingS3Client:
+    def __init__(self) -> None:
+        self.put_calls: list[dict[str, Any]] = []
+
+    def put_object(self, **kwargs: Any) -> None:
+        self.put_calls.append(kwargs)
+
+
+class S3AuditPersistenceContractTest(AuditPersistenceContract, unittest.TestCase):
+    def setUp(self):
+        self.client = RecordingS3Client()
+        self.persistence = S3AuditPersistence(
+            bucket="responsible-next-step-audit-local",
+            prefix="decisions",
+            client=self.client,
+        )
+
+    def read_persisted_record(self, reference: str) -> dict[str, Any]:
+        self.assertEqual(len(self.client.put_calls), 1)
+        call = self.client.put_calls[0]
+        self.assertEqual(reference, f"s3://{call['Bucket']}/{call['Key']}")
+        self.assertEqual(call["ContentType"], "application/json")
+        self.assertEqual(call["ServerSideEncryption"], "AES256")
+        self.assertRegex(call["Key"], r"^decisions/2026-06-29/dec_contract_001\.json$")
+        return json.loads(call["Body"])
 
 
 class DecisionAuditIntegrationTest(unittest.TestCase):

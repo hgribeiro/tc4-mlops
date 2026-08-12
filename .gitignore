@@ -8,6 +8,12 @@ presentation/node_modules/
 presentation/dist/
 presentation/test-results/
 presentation/playwright-report/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+.build/
+build/
+*.egg-info/
 logs/
 artifacts/*
 !artifacts/official-experiment/

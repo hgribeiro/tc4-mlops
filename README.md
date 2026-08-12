@@ -17,6 +17,7 @@ O projeto simula uma plataforma de experimentação adaptativa para a persona **
 - [MLOps e governança](#mlops-e-governança)
 - [Estrutura do repositório](#estrutura-do-repositório)
 - [Como começar](#como-começar)
+- [Cloud shape local com LocalStack](#cloud-shape-local-com-localstack)
 - [Resultados reproduzíveis](#resultados-reproduzíveis)
 - [Mapa dos entregáveis oficiais](#mapa-dos-entregáveis-oficiais)
 - [Roteiro da demo](#roteiro-da-demo)
@@ -272,14 +273,26 @@ curl --fail-with-body http://127.0.0.1:8000/v1/decisions \
 
 `GET /health` informa somente saúde técnica e `GET /ready` informa prontidão, sem expor cenários, política ou auditoria. `ADAPTIVE_ENABLED=false` pausa explicitamente apenas a Política Adaptativa, sem fallback silencioso; `AUDIT_LOG_DIR` configura a persistência local minimizada. Falha de auditoria fecha a requisição com erro de serviço e sem decisão válida.
 
-A mesma aplicação usa `responsible_next_step.api:handler` como adaptação Mangum para Lambda. A imagem canônica Python 3.12 pode ser executada localmente com:
-
-```bash
-docker build -t responsible-next-step-demo .
-docker run --rm -p 8000:8000 responsible-next-step-demo
-```
+A mesma aplicação usa `responsible_next_step.api:handler` como adaptação Mangum para Lambda; Uvicorn continua sendo o caminho de desenvolvimento HTTP direto.
 
 Esta é uma **API de Demonstração**, não uma API bancária genérica nem uma superfície pronta para produção regulada. Ela não recebe contexto arbitrário ou dados pessoais.
+
+## Cloud shape local com LocalStack
+
+O fluxo local isolado usa state Terraform no disco, credenciais descartáveis e endpoint overrides somente no provider LocalStack; ele não altera perfil ou recursos AWS reais. Para contornar a limitação conhecida do ECR na edição Community, ele empacota a mesma aplicação FastAPI/Mangum e suas dependências em um ZIP Python 3.12 local, aplica API Gateway REST/Lambda/S3 e executa o smoke HTTP + objeto de auditoria S3:
+
+```bash
+python -m pip install -e '.[test]'
+./scripts/local-demo.sh start
+```
+
+Ao terminar, destrua o ambiente e o volume LocalStack:
+
+```bash
+./scripts/local-demo.sh cleanup
+```
+
+O ZIP é somente o transporte local suportado para esta integração; não demonstra paridade com Lambda por imagem/ECR da AWS. O transporte de container/ECR real permanece fora deste escopo. Detalhes de pré-requisitos, validação Terraform e limites explícitos de paridade estão em [`docs/localstack.md`](docs/localstack.md). CloudFront, OIDC, IAM de conta real, observabilidade/alarmes e outros comportamentos não confiáveis na edição free não são simulados como prova: exigem testes de integração AWS futuros.
 
 ### Executar a primeira decisão demonstrável
 

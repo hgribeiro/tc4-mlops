@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 from pydantic import BaseModel, ConfigDict
 
-from .audit import AuditPersistence, LocalAuditPersistence
+from .audit import AuditPersistence, LocalAuditPersistence, S3AuditPersistence
 from .engine import decide
 
 ScenarioId = Literal["vehicle_simple", "home_complex", "guardrail_sensitive"]
@@ -54,9 +54,7 @@ def create_app(
     scenarios = cast(dict[str, dict[str, Any]], assets["scenarios"])
     packaged_policy = cast(dict[str, Any], assets["adaptive_policy"])
     configured_persistence = (
-        audit_persistence
-        if audit_persistence is not None
-        else LocalAuditPersistence(Path(os.getenv("AUDIT_LOG_DIR", "logs/decisions")))
+        audit_persistence if audit_persistence is not None else _audit_persistence_from_env()
     )
     persistence = _FailClosedAuditPersistence(configured_persistence)
     is_adaptive_enabled = (
@@ -124,6 +122,19 @@ def create_app(
             ) from exc
 
     return application
+
+
+def _audit_persistence_from_env() -> AuditPersistence:
+    backend = os.getenv("AUDIT_BACKEND", "local").strip().lower()
+    if backend == "local":
+        return LocalAuditPersistence(Path(os.getenv("AUDIT_LOG_DIR", "logs/decisions")))
+    if backend == "s3":
+        return S3AuditPersistence(
+            bucket=os.getenv("AUDIT_S3_BUCKET", ""),
+            prefix=os.getenv("AUDIT_S3_PREFIX", "decisions"),
+            endpoint_url=os.getenv("AUDIT_S3_ENDPOINT_URL"),
+        )
+    raise RuntimeError("AUDIT_BACKEND deve ser 'local' ou 's3'")
 
 
 def _load_demo_assets() -> dict[str, Any]:

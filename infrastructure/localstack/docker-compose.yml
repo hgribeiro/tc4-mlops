@@ -1,0 +1,18 @@
+name: responsible-next-step-local
+
+services:
+  localstack:
+    image: localstack/localstack:4.13.1
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,iam,lambda,apigateway
+      AWS_DEFAULT_REGION: us-east-1
+      DEBUG: "0"
+      LAMBDA_DOCKER_NETWORK: responsible-next-step-local_default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - localstack-data:/var/lib/localstack
+
+volumes:
+  localstack-data:
