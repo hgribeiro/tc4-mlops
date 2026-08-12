@@ -19,7 +19,9 @@ resource "aws_s3_bucket" "presentation" {
 }
 
 resource "aws_s3_bucket" "audit" {
-  bucket        = "${local.name_prefix}-audit"
+  bucket = "${local.name_prefix}-audit"
+  # Teardown explicitly verifies evidence and empties this bucket before the
+  # Terraform destroy; force_destroy must not silently discard audit records.
   force_destroy = false
   tags          = merge(local.common_tags, { DataClass = "synthetic-audit" })
 }

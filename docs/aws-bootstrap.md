@@ -129,5 +129,15 @@ para a issue #27.
 A role OIDC de deploy continua com os mesmos subjects exatos. Sua policy e
 permissions boundary agora enumeram a chave `demo/terraform.tfstate` e os
 nomes concretos `tc4-mlops-demo-969212888717-*`, sem `AdministratorAccess` ou
-`iam:*`. A role ainda não é acionada por workflow nesta issue; esse fluxo é da
-issue #26.
+`iam:*`. O workflow de deploy é o da issue #26; o teardown usa a mesma role
+protegida pelo environment `demo` e a mesma concorrência de ciclo de vida.
+
+## Encerramento e custo da demo (#27)
+
+O bootstrap também cria o AWS Budget mensal de USD 30 da demo, com alertas de
+custo realizado em 80% e 100%. O alerta não interrompe gastos automaticamente:
+créditos promocionais, Free Tier, impostos e a própria medição de Billing podem
+variar. O endereço operacional é mantido uma única vez na variável Terraform,
+e não deve ser reproduzido em logs ou artifacts. O procedimento, exportação
+minimizada com hashes, retenção de artifact e failsafe agendado estão em
+[Encerramento seguro da demo AWS](aws-demo-teardown.md).

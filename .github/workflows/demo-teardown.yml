@@ -1,0 +1,69 @@
+name: Demo evidence export and teardown
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DESTROY_DEMO after the presentation to confirm the temporary-demo teardown"
+        required: true
+        type: string
+  schedule:
+    # The state expiry remains four hours; this is a guarded cost failsafe, not
+    # a replacement for the deliberate post-presentation teardown.
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+# This group is shared with deploy, so a deploy cannot race a destroy. Do not
+# cancel an in-progress lifecycle operation: its Terraform lock/state is part
+# of recovery if AWS is slow to delete CloudFront.
+concurrency:
+  group: tc4-mlops-demo-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    name: export minimized evidence and destroy expired or confirmed demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment:
+      name: demo
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.3"
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::969212888717:role/tc4-mlops-github-deploy
+          aws-region: us-east-1
+          role-session-name: tc4-demo-teardown
+      - name: Verify OIDC identity
+        run: aws sts get-caller-identity --query Account --output text | grep -x '969212888717'
+      - name: Export evidence and guarded teardown
+        env:
+          CI: "true"
+          CONFIRMATION: ${{ inputs.confirmation }}
+          EVIDENCE_DIR: ${{ runner.temp }}/tc4-mlops-teardown-evidence
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            scripts/teardown-demo-aws.sh --expired-only
+          else
+            [[ "$CONFIRMATION" == "DESTROY_DEMO" ]] || { echo "Manual confirmation must be DESTROY_DEMO" >&2; exit 2; }
+            DESTROY_APPROVED=DESTROY_DEMO scripts/teardown-demo-aws.sh --confirm-destroy
+          fi
+      - name: Upload seven-day teardown evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-teardown-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/tc4-mlops-teardown-evidence
+          if-no-files-found: warn
+          retention-days: 7

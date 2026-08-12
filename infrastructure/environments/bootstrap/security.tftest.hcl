@@ -1,8 +1,9 @@
 mock_provider "aws" {}
 
 variables {
-  aws_region        = "us-east-1"
-  state_bucket_name = "tc4-mlops-tfstate-123456789012-example"
+  aws_region         = "us-east-1"
+  state_bucket_name  = "tc4-mlops-tfstate-123456789012-example"
+  budget_alert_email = "budget-alert@example.invalid"
 }
 
 override_resource {
@@ -62,6 +63,20 @@ run "keeps_persistent_state_private_versioned_and_non_destructible" {
   assert {
     condition     = strcontains(output.backend_config, "use_lockfile = true") && strcontains(output.backend_config, "encrypt      = true")
     error_message = "A configuração gerada do backend deve habilitar criptografia e lockfile S3 nativo."
+  }
+}
+
+run "creates_monthly_advisory_budget_without_a_spend_stop" {
+  command = apply
+
+  assert {
+    condition     = aws_budgets_budget.monthly_demo_cost.limit_amount == "30" && aws_budgets_budget.monthly_demo_cost.limit_unit == "USD" && aws_budgets_budget.monthly_demo_cost.time_unit == "MONTHLY"
+    error_message = "O budget da demo deve ser mensal e limitado a USD 30."
+  }
+
+  assert {
+    condition     = length(aws_budgets_budget.monthly_demo_cost.notification) == 2 && alltrue([for notification in aws_budgets_budget.monthly_demo_cost.notification : notification.notification_type == "ACTUAL" && notification.threshold_type == "PERCENTAGE"])
+    error_message = "O budget deve enviar apenas alertas de custo realizado em percentual."
   }
 }
 

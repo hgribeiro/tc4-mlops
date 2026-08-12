@@ -117,8 +117,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Shared with the teardown workflow so deployment and destroy cannot race.
     concurrency:
-      group: tc4-mlops-demo-deploy
+      group: tc4-mlops-demo-lifecycle
       cancel-in-progress: false
     environment:
       name: demo

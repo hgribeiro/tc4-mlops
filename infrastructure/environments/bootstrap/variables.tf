@@ -29,3 +29,15 @@ variable "state_key" {
     error_message = "O bootstrap usa somente a chave bootstrap/terraform.tfstate para evitar mistura com state da demo."
   }
 }
+
+variable "budget_alert_email" {
+  description = "E-mail operacional que recebe alertas do AWS Budget mensal da demo; não é segredo."
+  type        = string
+  default     = "hgribeirolive@gmail.com"
+  sensitive   = true
+
+  validation {
+    condition     = can(regex("^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$", var.budget_alert_email))
+    error_message = "budget_alert_email deve ser um endereço de e-mail válido."
+  }
+}
