@@ -146,7 +146,7 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
       length([for statement in policy : statement if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]) &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]) &&
       toset(one([for statement in policy : statement.Resource if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(local.demo_s3_arns)
     ])
     error_message = "As duas camadas devem permitir exatamente os reads S3 do refresh somente nos buckets concretos da demo."

@@ -13,7 +13,7 @@ BUCKET_REFRESH_READS = {
     "s3:GetLifecycleConfiguration",
     "s3:GetReplicationConfiguration",
     "s3:GetEncryptionConfiguration",
-    "s3:GetObjectLockConfiguration",
+    "s3:GetBucketObjectLockConfiguration",
 }
 RUNTIME_ROLE_REFRESH_READS = {
     "iam:ListAttachedRolePolicies",
@@ -41,6 +41,8 @@ def test_provider_refresh_reads_are_exact_and_scoped_in_both_policy_layers():
     source = BOOTSTRAP.read_text()
     boundary = _resource_block(source, 'resource "aws_iam_policy" "automation_boundary"')
     deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
+
+    assert '"s3:GetObjectLockConfiguration"' not in source
 
     for policy in (boundary, deploy_policy):
         bucket_actions, bucket_resource = _statement_actions_and_resource(

@@ -168,7 +168,7 @@ resource "aws_iam_policy" "automation_boundary" {
         Effect = "Allow"
         # aws_s3_bucket Read in AWS provider v6.58.0 unconditionally makes
         # these legacy configuration reads during refresh/destroy.
-        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]
+        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]
         Resource = local.demo_s3_arns
       },
       {
@@ -363,7 +363,7 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Sid    = "ReadConcreteDemoBucketProviderRefreshState"
         Effect = "Allow"
         # This mirrors the boundary and deliberately excludes any non-demo S3 resource.
-        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetObjectLockConfiguration"]
+        Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]
         Resource = local.demo_s3_arns
       },
       {
