@@ -15,6 +15,17 @@ locals {
 
   state_object_arn = "${aws_s3_bucket.terraform_state.arn}/${var.state_key}"
   lock_object_arn  = "${aws_s3_bucket.terraform_state.arn}/${var.state_key}.tflock"
+  demo_state_key   = "demo/terraform.tfstate"
+  demo_state_arn   = "${aws_s3_bucket.terraform_state.arn}/${local.demo_state_key}"
+  demo_lock_arn    = "${aws_s3_bucket.terraform_state.arn}/${local.demo_state_key}.tflock"
+  # The concrete temporary demo naming convention is account-bound. It is not
+  # a wildcard for arbitrary repositories, accounts or resource families.
+  demo_prefix        = "tc4-mlops-demo-969212888717"
+  demo_s3_arns       = ["arn:aws:s3:::${local.demo_prefix}-presentation", "arn:aws:s3:::${local.demo_prefix}-presentation/*", "arn:aws:s3:::${local.demo_prefix}-audit", "arn:aws:s3:::${local.demo_prefix}-audit/*"]
+  demo_lambda_arn    = "arn:aws:lambda:us-east-1:969212888717:function:${local.demo_prefix}-api"
+  demo_ecr_arn       = "arn:aws:ecr:us-east-1:969212888717:repository/${local.demo_prefix}-api"
+  demo_runtime_role  = "arn:aws:iam::969212888717:role/${local.demo_prefix}-lambda"
+  demo_log_group_arn = "arn:aws:logs:us-east-1:969212888717:log-group:/aws/lambda/${local.demo_prefix}-api:*"
   common_tags = {
     Project     = local.project_name
     Environment = "bootstrap"
@@ -125,6 +136,34 @@ resource "aws_iam_policy" "automation_boundary" {
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [local.lock_object_arn]
       },
+      {
+        Sid      = "UseSeparateDemoStateAndLockfile"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
+        Resource = [local.demo_state_arn, local.demo_lock_arn]
+      },
+      {
+        Sid       = "ListSeparateDemoState"
+        Effect    = "Allow"
+        Action    = ["s3:ListBucket"]
+        Resource  = [aws_s3_bucket.terraform_state.arn]
+        Condition = { StringLike = { "s3:prefix" = [local.demo_state_key, "${local.demo_state_key}.tflock"] } }
+      },
+      {
+        Sid    = "ManageNamedTemporaryDemoResources"
+        Effect = "Allow"
+        Action = [
+          "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE",
+          "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation",
+          "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms",
+          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage",
+          "lambda:CreateFunction", "lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:TagResource", "lambda:UntagResource",
+          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters",
+          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:PassRole"
+        ]
+        Resource = "*"
+      },
     ]
   })
   tags = local.common_tags
@@ -215,6 +254,65 @@ resource "aws_iam_role_policy" "plan_backend" {
           }
         }
       },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "deploy_demo" {
+  name = "${local.project_name}-deploy-temporary-demo"
+  role = aws_iam_role.deploy.id
+  # The actions below are deliberately enumerated for the concrete #25 names.
+  # Some AWS control-plane Create APIs cannot scope Resource below "*"; the
+  # accompanying permissions boundary still allows no IAM administration and
+  # no service family outside this temporary demo.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "DemoStateOnly"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
+        Resource = [local.demo_state_arn, local.demo_lock_arn]
+      },
+      {
+        Sid       = "ListDemoStateOnly"
+        Effect    = "Allow"
+        Action    = ["s3:ListBucket"]
+        Resource  = [aws_s3_bucket.terraform_state.arn]
+        Condition = { StringLike = { "s3:prefix" = [local.demo_state_key, "${local.demo_state_key}.tflock"] } }
+      },
+      {
+        Sid    = "OperateConcreteDataAndRuntimeResources"
+        Effect = "Allow"
+        Action = [
+          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetBucketEncryption", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
+        ]
+        Resource = local.demo_s3_arns
+      },
+      {
+        Sid      = "OperateConcreteEcrAndLambda"
+        Effect   = "Allow"
+        Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"]
+        Resource = [local.demo_ecr_arn]
+      },
+      {
+        Sid      = "OperateConcreteLambda"
+        Effect   = "Allow"
+        Action   = ["lambda:GetFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:TagResource", "lambda:UntagResource"]
+        Resource = [local.demo_lambda_arn]
+      },
+      {
+        Sid      = "ManageOnlyDemoRuntimeRole"
+        Effect   = "Allow"
+        Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:PassRole"]
+        Resource = [local.demo_runtime_role]
+      },
+      {
+        Sid      = "CreateAndReadOnlyRequiredControlPlaneResources"
+        Effect   = "Allow"
+        Action   = ["s3:CreateBucket", "ecr:CreateRepository", "ecr:GetAuthorizationToken", "lambda:CreateFunction", "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation"]
+        Resource = "*"
+      }
     ]
   })
 }

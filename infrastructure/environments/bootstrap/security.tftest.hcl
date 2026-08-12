@@ -84,7 +84,7 @@ run "restricts_oidc_to_repository_refs_and_demo_environment" {
   }
 }
 
-run "separates_plan_and_deploy_and_limits_them_to_backend_operations" {
+run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_operations" {
   command = apply
 
   assert {
@@ -103,5 +103,15 @@ run "separates_plan_and_deploy_and_limits_them_to_backend_operations" {
   assert {
     condition     = strcontains(aws_iam_role_policy.deploy_backend.policy, "bootstrap/terraform.tfstate") && strcontains(aws_iam_role_policy.deploy_backend.policy, "bootstrap/terraform.tfstate.tflock")
     error_message = "Deploy deve ter acesso explícito ao state e lockfile do bootstrap."
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_role_policy.deploy_demo.policy, "demo/terraform.tfstate") && strcontains(aws_iam_role_policy.deploy_demo.policy, "tc4-mlops-demo-969212888717") && !strcontains(aws_iam_role_policy.deploy_demo.policy, "AdministratorAccess")
+    error_message = "Deploy pode operar apenas o state e os nomes concretos da demo, nunca administração ampla."
+  }
+
+  assert {
+    condition     = strcontains(aws_iam_policy.automation_boundary.policy, "UseSeparateDemoStateAndLockfile") && !strcontains(aws_iam_policy.automation_boundary.policy, "iam:*")
+    error_message = "A boundary deve permitir o state separado da demo sem liberar IAM amplo."
   }
 }

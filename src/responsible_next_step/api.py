@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from importlib import resources
 from pathlib import Path
@@ -14,6 +15,8 @@ from pydantic import BaseModel, ConfigDict
 
 from .audit import AuditPersistence, LocalAuditPersistence, S3AuditPersistence
 from .engine import decide
+
+logger = logging.getLogger(__name__)
 
 ScenarioId = Literal["vehicle_simple", "home_complex", "guardrail_sensitive"]
 PolicyMode = Literal["baseline", "adaptive"]
@@ -102,7 +105,7 @@ def create_app(
             )
 
         try:
-            return decide(
+            decision = decide(
                 scenarios[request.scenario_id],
                 persistence,
                 policy_mode=request.policy_mode,
@@ -111,17 +114,33 @@ def create_app(
                 ),
             )
         except AuditUnavailableError as exc:
+            _log_telemetry("audit_unavailable", policy_mode=request.policy_mode)
             raise HTTPException(
                 status_code=503,
                 detail="Auditoria indisponível.",
             ) from exc
         except ValueError as exc:
+            _log_telemetry("adaptive_unavailable", policy_mode=request.policy_mode)
             raise HTTPException(
                 status_code=503,
                 detail="Política Adaptativa indisponível.",
             ) from exc
 
+        _log_telemetry(
+            "decision",
+            policy_mode=request.policy_mode,
+            selected_action=decision["selected_action"],
+            guardrails_count=len(decision["guardrails_triggered"]),
+            requires_human_review=decision["requires_human_review"],
+        )
+        return decision
+
     return application
+
+
+def _log_telemetry(event: str, **attributes: Any) -> None:
+    """Emit only aggregate decision metadata; never request or audit payloads."""
+    logger.info(json.dumps({"event": event, **attributes}, sort_keys=True))
 
 
 def _audit_persistence_from_env() -> AuditPersistence:

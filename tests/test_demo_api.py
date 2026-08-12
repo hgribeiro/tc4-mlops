@@ -93,6 +93,20 @@ class DemoApiHttpContractTest(unittest.TestCase):
             [outcome[0] for outcome in expected.values()],
         )
 
+    def test_telemetry_logs_only_decision_metadata_not_payload(self):
+        with self.assertLogs("responsible_next_step.api", level="INFO") as logs:
+            response = self.client.post(
+                "/v1/decisions",
+                json={"scenario_id": "vehicle_simple", "policy_mode": "baseline"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        serialized = "\n".join(logs.output)
+        self.assertIn('"event": "decision"', serialized)
+        self.assertIn('"selected_action": "simulate_vehicle_secured_loan"', serialized)
+        for forbidden in ("vehicle_simple", "synthetic_customer_id", "context_minimized"):
+            self.assertNotIn(forbidden, serialized)
+
     def test_adaptive_policy_uses_the_same_guardrails_and_audit_contract(self):
         response = self.client.post(
             "/v1/decisions",

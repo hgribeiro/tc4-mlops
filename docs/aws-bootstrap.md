@@ -88,3 +88,32 @@ Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alte
 - **Destroy acidental:** o bucket, provider OIDC, roles e boundary têm `prevent_destroy`; o bucket também tem `force_destroy = false`. Uma remoção persistente exige alteração explícita, revisão humana e confirmação de que nenhuma demo usa o backend.
 
 O bootstrap não guarda secrets em outputs. ARNs e o nome do bucket são identificadores operacionais, não credenciais. Revise regularmente as versões do state, a associação das roles e as proteções MFA/SSO com o administrador da conta.
+
+## Demo AWS temporária (#25)
+
+A demo usa o mesmo bucket persistente, porém uma chave de state **separada**:
+`demo/terraform.tfstate`. Ela não altera o `prevent_destroy` do bootstrap e não
+executa destroy do bootstrap. O script versionado faz o apply em dois estágios:
+primeiro ECR, buckets e CloudFront; depois da imagem imutável existir, Lambda e
+HTTP API. Ele injeta a URL resultante da API no build do deck, publica-o no
+bucket privado, invalida CloudFront e executa os smokes públicos.
+
+```bash
+export AWS_PROFILE=coding-agent
+# O SHA deve ser o commit que contém a infraestrutura; nunca use latest.
+COMMIT_SHA="$(git rev-parse HEAD)" AWS_PROFILE=coding-agent \
+  scripts/deploy-demo-aws.sh
+```
+
+O script exige a conta `969212888717`, usa `us-east-1` por padrão (configure
+`AWS_REGION` para mudar), cria `backend.hcl` ignorado temporário e usa somente
+a cadeia de credenciais do perfil. Ao final ele **mantém** a demo para os itens
+seguintes, com `ExpiresAt` quatro horas após o primeiro apply. Isso é uma tag e
+um failsafe operacional; não é destruição automática, Budget Alert nem o
+workflow de encerramento previsto para a issue #27.
+
+A role OIDC de deploy continua com os mesmos subjects exatos. Sua policy e
+permissions boundary agora enumeram a chave `demo/terraform.tfstate` e os
+nomes concretos `tc4-mlops-demo-969212888717-*`, sem `AdministratorAccess` ou
+`iam:*`. A role ainda não é acionada por workflow nesta issue; esse fluxo é da
+issue #26.
