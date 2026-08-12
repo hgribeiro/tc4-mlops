@@ -95,7 +95,8 @@ object_count="$(aws s3api list-objects-v2 --bucket "$audit_bucket" --prefix deci
 # The API accepts only IDs, but this independently checks that scenario payloads
 # did not leak into the Lambda log stream.
 for forbidden in vehicle_simple home_complex guardrail_sensitive; do
-  [[ "$(aws logs filter-log-events --log-group-name "$log_group" --filter-pattern "$forbidden" --profile "$AWS_PROFILE" --query 'length(events)' --output text)" == "0" ]] || { echo "Found forbidden payload marker in logs: $forbidden" >&2; exit 1; }
+  marker_events="$(aws logs filter-log-events --log-group-name "$log_group" --filter-pattern "$forbidden" --profile "$AWS_PROFILE" --output json | python -c 'import json, sys; print(len(json.load(sys.stdin)["events"]))')"
+  [[ "$marker_events" == "0" ]] || { echo "Found forbidden payload marker in logs: $forbidden" >&2; exit 1; }
 done
 
 printf '\nCloudFront: %s\nAPI: %s\nECR: %s:%s\nAudit: s3://%s/decisions/\nState: s3://%s/%s\nExpiresAt: %s\nLowQuotaMode: %s\n' \
