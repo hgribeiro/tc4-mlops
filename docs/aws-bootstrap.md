@@ -76,7 +76,9 @@ Use os ARNs produzidos no output somente em workflows deste repositório. A trus
 
 Não há wildcard em `sub`, organização, repositório, ref ou ambiente. Proteja o environment GitHub `demo` com revisores obrigatórios **e restrinja as deployment branches a `main`** antes de ligar qualquer workflow ao ARN de deploy. O subject OIDC de um job que usa environment contém o environment, não a ref; a restrição de branch é, portanto, obrigatória na configuração do environment GitHub.
 
-As duas roles são separadas. A role de plan só lê o state e manipula seu lockfile; a de deploy também pode atualizar somente o state do bootstrap e seu lockfile. Ambas usam a mesma permissions boundary. Elas deliberadamente **não** recebem `AdministratorAccess`, `iam:*`, `s3:*`, nem permissão oculta para criar recursos da demo.
+As duas roles são separadas. A role de plan lê o state separado da demo e manipula somente o lockfile dela; o plan usa `-refresh=false`, portanto não recebe acesso a recursos da demo nem pode escrever o state. A role de deploy atualiza somente o state separado e os recursos temporários de nomes concretos. Ambas usam a mesma permissions boundary. Elas deliberadamente **não** recebem `AdministratorAccess`, `iam:*`, `s3:*`, nem permissão para alterar a trust policy, provider OIDC, roles de automação ou proteções do bootstrap.
+
+O workflow [`.github/workflows/demo-quality-and-deploy.yml`](../.github/workflows/demo-quality-and-deploy.yml) executa qualidade, evidência oficial, deck, Docker e Terraform antes do plan. O plan assume somente `tc4-mlops-github-plan`; deploy só pode ser iniciado manualmente (`workflow_dispatch`) da ref `main`, assume somente `tc4-mlops-github-deploy` e declara `environment: demo`. O environment `demo` está configurado com aprovação manual do mantenedor `hgribeiro` e política de branch personalizada somente para `main`. Como este repositório tem apenas esse mantenedor configurado, a proteção permite autoaprovação (`prevent_self_review=false`); antes de uma demonstração com governança independente, adicione outro revisor e habilite `prevent_self_review`. A trust OIDC do environment não contém a ref, então ambas as proteções são necessárias. Não use `pull_request_target`, secrets de Access Key ou credenciais persistentes.
 
 Quando os recursos temporários tiverem nomes, tags e ARNs definitivos, uma alteração posterior deve ampliar de forma revisada **a policy da role e a permissions boundary**, com testes de invariantes para cada serviço. Não contorne essa etapa anexando uma policy ampla ou removendo a boundary.
 
@@ -107,20 +109,14 @@ COMMIT_SHA="$(git rev-parse HEAD)" AWS_PROFILE=coding-agent \
 
 ### Exceção temporária de quota Lambda
 
-O modo padrão e pretendido usa `reserved_concurrent_executions = 2`. Enquanto a
-conta `969212888717` permanecer com `ConcurrentExecutions = 10` e a solicitação
-de aumento estiver pendente, a exceção aprovada é executada explicitamente com:
-
-```bash
-COMMIT_SHA="$(git rev-parse HEAD)" LOW_QUOTA_MODE=true AWS_PROFILE=coding-agent \
-  scripts/deploy-demo-aws.sh
-```
-
-Esse modo **omite** a concorrência reservada da função (preserva o hard cap da
-conta), mas não altera timeout de Lambda (10 segundos), throttle da API Gateway
-(5 req/s), burst (10), serviços ou capacidade. Após a aprovação da quota, não
-informe `LOW_QUOTA_MODE` (ou informe `false`) para restaurar a reserva padrão de
-2. A evidência operacional da exceção deve registrar a quota e o modo usados.
+Enquanto a conta `969212888717` permanecer com `ConcurrentExecutions = 10` e a
+solicitação de aumento estiver pendente, `LOW_QUOTA_MODE=true` é o padrão
+configurável tanto do script quanto do workflow. Ele **omite** a concorrência
+reservada da função (preserva o hard cap da conta), mas não altera timeout de
+Lambda (10 segundos), throttle da API Gateway (5 req/s), burst (10), serviços
+ou capacidade. Após a aprovação da quota, informe `LOW_QUOTA_MODE=false` para
+restaurar a reserva padrão de 2. A evidência operacional deve registrar a quota
+e o modo usados.
 
 O script exige a conta `969212888717`, usa `us-east-1` por padrão (configure
 `AWS_REGION` para mudar), cria `backend.hcl` ignorado temporário e usa somente

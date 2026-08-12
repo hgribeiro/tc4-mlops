@@ -50,9 +50,15 @@ run "keeps_presentation_and_audit_private_and_encrypted" {
 run "uses_immutable_image_and_conservative_public_api_limits" {
   command = apply
 
+  variables {
+    # The post-quota configuration remains tested, but account 969212888717
+    # defaults to low_quota_mode=true until its quota is raised.
+    low_quota_mode = false
+  }
+
   assert {
     condition     = aws_ecr_repository.api.image_tag_mutability == "IMMUTABLE" && aws_lambda_function.api[0].package_type == "Image" && aws_lambda_function.api[0].timeout == 10 && aws_lambda_function.api[0].reserved_concurrent_executions == 2
-    error_message = "The default Lambda container mode must use immutable ECR tags, timeout 10 and reserved concurrency 2."
+    error_message = "The post-quota Lambda container mode must use immutable ECR tags, timeout 10 and reserved concurrency 2."
   }
 
   assert {
@@ -69,9 +75,7 @@ run "uses_immutable_image_and_conservative_public_api_limits" {
 run "low_quota_mode_omits_reserved_concurrency_without_relaxing_limits" {
   command = apply
 
-  variables {
-    low_quota_mode = true
-  }
+  # This run deliberately relies on the account-safe default.
 
   assert {
     condition     = aws_lambda_function.api[0].timeout == 10 && aws_lambda_function.api[0].reserved_concurrent_executions == null

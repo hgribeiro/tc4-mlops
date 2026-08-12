@@ -101,6 +101,14 @@ run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_op
   }
 
   assert {
+    condition = alltrue([
+      for statement in jsondecode(aws_iam_role_policy.plan_backend.policy).Statement :
+      !(contains(statement.Action, "s3:PutObject") && contains(statement.Resource, "arn:aws:s3:::tc4-mlops-tfstate-123456789012-example/demo/terraform.tfstate"))
+    ]) && strcontains(aws_iam_role_policy.plan_backend.policy, "demo/terraform.tfstate.tflock")
+    error_message = "Plan pode bloquear a demo, mas nunca gravar seu state."
+  }
+
+  assert {
     condition     = strcontains(aws_iam_role_policy.deploy_backend.policy, "bootstrap/terraform.tfstate") && strcontains(aws_iam_role_policy.deploy_backend.policy, "bootstrap/terraform.tfstate.tflock")
     error_message = "Deploy deve ter acesso explícito ao state e lockfile do bootstrap."
   }

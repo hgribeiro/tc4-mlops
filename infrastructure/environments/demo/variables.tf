@@ -34,7 +34,7 @@ variable "expires_at" {
 }
 
 variable "low_quota_mode" {
-  description = "Temporary exception for an account at 10 Lambda concurrent executions: omit function reserved concurrency. Defaults to false, which reserves 2 executions."
+  description = "Approved default while this account has 10 Lambda concurrent executions: omit reserved concurrency. Set false only after quota approval to reserve 2 executions."
   type        = bool
-  default     = false
+  default     = true
 }
