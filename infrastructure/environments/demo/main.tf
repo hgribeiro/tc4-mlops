@@ -164,6 +164,24 @@ resource "aws_ecr_repository" "api" {
   tags = local.common_tags
 }
 
+resource "aws_ecr_repository_policy" "lambda_pull" {
+  repository = aws_ecr_repository.api.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowLambdaToPullDemoImage"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+      Condition = {
+        StringLike = {
+          "aws:SourceArn" = "arn:aws:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:function:${local.name_prefix}-api"
+        }
+      }
+    }]
+  })
+}
+
 resource "aws_ecr_lifecycle_policy" "api" {
   repository = aws_ecr_repository.api.name
   policy = jsonencode({
@@ -244,6 +262,7 @@ resource "aws_lambda_function" "api" {
   }
 
   depends_on = [
+    aws_ecr_repository_policy.lambda_pull,
     aws_iam_role_policy.lambda_runtime,
     aws_s3_bucket_server_side_encryption_configuration.audit,
     aws_cloudwatch_log_group.api,

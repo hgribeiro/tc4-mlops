@@ -114,7 +114,7 @@ resource "aws_iam_policy" "automation_boundary" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ListOnlyBootstrapState"
+        Sid      = "BootstrapStateList"
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
         Resource = [aws_s3_bucket.terraform_state.arn]
@@ -125,47 +125,47 @@ resource "aws_iam_policy" "automation_boundary" {
         }
       },
       {
-        Sid      = "ReadWriteBootstrapState"
+        Sid      = "BootstrapStateRW"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]
         Resource = [local.state_object_arn]
       },
       {
-        Sid      = "UseNativeS3Lockfile"
+        Sid      = "BootstrapLock"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [local.lock_object_arn]
       },
       {
-        Sid      = "UseSeparateDemoStateAndLockfile"
+        Sid      = "DemoStateRW"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
         Resource = [local.demo_state_arn, local.demo_lock_arn]
       },
       {
-        Sid       = "ListSeparateDemoState"
+        Sid       = "DemoStateList"
         Effect    = "Allow"
         Action    = ["s3:ListBucket"]
         Resource  = [aws_s3_bucket.terraform_state.arn]
         Condition = { StringLike = { "s3:prefix" = [local.demo_state_key, "${local.demo_state_key}.tflock"] } }
       },
       {
-        Sid    = "ManageNamedTemporaryDemoResources"
+        Sid    = "DemoOperations"
         Effect = "Allow"
         Action = [
-          "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE",
+          "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "apigateway:PUT",
           "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListDistributions", "cloudfront:ListOriginAccessControls", "cloudfront:ListTagsForResource",
           "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources",
-          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
+          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:GetAuthorizationToken", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
           "lambda:CreateFunction", "lambda:GetFunction", "lambda:GetPolicy", "lambda:ListVersionsByFunction", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:DeleteFunction", "lambda:AddPermission", "lambda:RemovePermission", "lambda:ListTags", "lambda:TagResource", "lambda:UntagResource",
           "logs:CreateLogGroup", "logs:PutRetentionPolicy", "logs:DescribeLogGroups", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource",
-          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+          "s3:CreateBucket", "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:ListTagsForResource", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject",
           "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
         ]
         Resource = "*"
       },
       {
-        Sid      = "TagRequestedDemoCloudFrontDistribution"
+        Sid      = "CFTagCreate"
         Effect   = "Allow"
         Action   = ["cloudfront:TagResource"]
         Resource = [local.demo_cloudfront_distribution_arn]
@@ -178,7 +178,7 @@ resource "aws_iam_policy" "automation_boundary" {
         }
       },
       {
-        Sid      = "RetagExistingDemoCloudFrontDistribution"
+        Sid      = "CFRetag"
         Effect   = "Allow"
         Action   = ["cloudfront:TagResource", "cloudfront:UntagResource"]
         Resource = [local.demo_cloudfront_distribution_arn]
@@ -191,19 +191,28 @@ resource "aws_iam_policy" "automation_boundary" {
         }
       },
       {
-        Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
+        Sid      = "ApiGwServiceRole"
+        Effect   = "Allow"
+        Action   = ["iam:CreateServiceLinkedRole"]
+        Resource = "arn:aws:iam::*:role/aws-service-role/ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway"
+        Condition = {
+          StringEquals = { "iam:AWSServiceName" = "ops.apigateway.amazonaws.com" }
+        }
+      },
+      {
+        Sid      = "EcrLifecycle"
         Effect   = "Allow"
         Action   = ["ecr:DeleteLifecyclePolicy"]
         Resource = [local.demo_ecr_arn]
       },
       {
-        Sid      = "ManageConcreteDemoLogGroup"
+        Sid      = "DemoLogGroup"
         Effect   = "Allow"
         Action   = ["logs:DeleteLogGroup"]
         Resource = [local.demo_log_group_arn]
       },
       {
-        Sid    = "ReadConcreteDemoBucketProviderRefreshState"
+        Sid    = "DemoBucketRefresh"
         Effect = "Allow"
         # aws_s3_bucket Read in AWS provider v6.58.0 unconditionally makes
         # these legacy configuration reads during refresh/destroy.
@@ -211,15 +220,15 @@ resource "aws_iam_policy" "automation_boundary" {
         Resource = local.demo_s3_arns
       },
       {
-        Sid      = "ReadConcreteDemoRuntimeRoleProviderRefreshState"
+        Sid      = "DemoRoleRefresh"
         Effect   = "Allow"
         Action   = ["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]
         Resource = [local.demo_runtime_role]
       },
       {
-        Sid      = "ReadPersistentTeardownSurvivors"
+        Sid      = "TeardownSurvivors"
         Effect   = "Allow"
-        Action   = ["budgets:ViewBudget", "budgets:ViewNotificationsForBudget", "budgets:ViewSubscribersForNotification", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
+        Action   = ["budgets:ViewBudget", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
         Resource = "*"
       },
     ]
@@ -394,25 +403,25 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Sid    = "OperateConcreteDataAndRuntimeResources"
         Effect = "Allow"
         Action = [
-          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
+          "s3:DeleteBucket", "s3:GetBucketLocation", "s3:GetBucketAcl", "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock", "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration", "s3:GetBucketOwnershipControls", "s3:PutBucketOwnershipControls", "s3:GetBucketTagging", "s3:ListTagsForResource", "s3:PutBucketTagging", "s3:ListBucket", "s3:ListBucketVersions", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
         ]
         Resource = local.demo_s3_arns
       },
       {
-        Sid    = "ReadConcreteDemoBucketProviderRefreshState"
+        Sid    = "DemoBucketRefresh"
         Effect = "Allow"
         # This mirrors the boundary and deliberately excludes any non-demo S3 resource.
         Action   = ["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]
         Resource = local.demo_s3_arns
       },
       {
-        Sid      = "ReadConcreteDemoRuntimeRoleProviderRefreshState"
+        Sid      = "DemoRoleRefresh"
         Effect   = "Allow"
         Action   = ["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]
         Resource = [local.demo_runtime_role]
       },
       {
-        Sid      = "TagRequestedDemoCloudFrontDistribution"
+        Sid      = "CFTagCreate"
         Effect   = "Allow"
         Action   = ["cloudfront:TagResource"]
         Resource = [local.demo_cloudfront_distribution_arn]
@@ -425,7 +434,7 @@ resource "aws_iam_role_policy" "deploy_demo" {
         }
       },
       {
-        Sid      = "RetagExistingDemoCloudFrontDistribution"
+        Sid      = "CFRetag"
         Effect   = "Allow"
         Action   = ["cloudfront:TagResource", "cloudfront:UntagResource"]
         Resource = [local.demo_cloudfront_distribution_arn]
@@ -438,7 +447,7 @@ resource "aws_iam_role_policy" "deploy_demo" {
         }
       },
       {
-        Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
+        Sid      = "EcrLifecycle"
         Effect   = "Allow"
         Action   = ["ecr:DeleteLifecyclePolicy"]
         Resource = [local.demo_ecr_arn]
@@ -446,11 +455,11 @@ resource "aws_iam_role_policy" "deploy_demo" {
       {
         Sid      = "OperateConcreteEcrAndLambda"
         Effect   = "Allow"
-        Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource"]
+        Action   = ["ecr:DeleteRepository", "ecr:DescribeRepositories", "ecr:DescribeImages", "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy", "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:PutImageScanningConfiguration", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage", "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource"]
         Resource = [local.demo_ecr_arn]
       },
       {
-        Sid      = "ManageConcreteDemoLogGroup"
+        Sid      = "DemoLogGroup"
         Effect   = "Allow"
         Action   = ["logs:DeleteLogGroup"]
         Resource = [local.demo_log_group_arn]
@@ -468,15 +477,24 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Resource = [local.demo_runtime_role]
       },
       {
-        Sid      = "ReadPersistentTeardownSurvivors"
+        Sid      = "ApiGwServiceRole"
         Effect   = "Allow"
-        Action   = ["budgets:ViewBudget", "budgets:ViewNotificationsForBudget", "budgets:ViewSubscribersForNotification", "iam:GetRole", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
+        Action   = ["iam:CreateServiceLinkedRole"]
+        Resource = "arn:aws:iam::*:role/aws-service-role/ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway"
+        Condition = {
+          StringEquals = { "iam:AWSServiceName" = "ops.apigateway.amazonaws.com" }
+        }
+      },
+      {
+        Sid      = "TeardownSurvivors"
+        Effect   = "Allow"
+        Action   = ["budgets:ViewBudget", "iam:GetRole", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
         Resource = "*"
       },
       {
         Sid      = "CreateAndReadOnlyRequiredControlPlaneResources"
         Effect   = "Allow"
-        Action   = ["s3:CreateBucket", "ecr:CreateRepository", "ecr:GetAuthorizationToken", "lambda:CreateFunction", "lambda:ListVersionsByFunction", "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource", "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources", "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListDistributions", "cloudfront:ListOriginAccessControls", "cloudfront:ListTagsForResource"]
+        Action   = ["s3:CreateBucket", "ecr:CreateRepository", "ecr:GetAuthorizationToken", "lambda:CreateFunction", "lambda:ListVersionsByFunction", "logs:CreateLogGroup", "logs:DescribeLogGroups", "logs:PutRetentionPolicy", "logs:PutMetricFilter", "logs:DeleteMetricFilter", "logs:DescribeMetricFilters", "logs:FilterLogEvents", "logs:ListTagsForResource", "logs:TagResource", "logs:UntagResource", "cloudwatch:PutDashboard", "cloudwatch:GetDashboard", "cloudwatch:DeleteDashboards", "cloudwatch:PutMetricAlarm", "cloudwatch:DescribeAlarms", "cloudwatch:DeleteAlarms", "cloudwatch:GetMetricData", "cloudwatch:ListTagsForResource", "cloudwatch:TagResource", "cloudwatch:UntagResource", "tag:GetResources", "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "apigateway:PUT", "cloudfront:CreateDistribution", "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl", "cloudfront:CreateInvalidation", "cloudfront:GetInvalidation", "cloudfront:ListDistributions", "cloudfront:ListOriginAccessControls", "cloudfront:ListTagsForResource"]
         Resource = "*"
       }
     ]
@@ -490,7 +508,7 @@ resource "aws_iam_role_policy" "deploy_backend" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ReadWriteBootstrapState"
+        Sid      = "BootstrapStateRW"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]
         Resource = [local.state_object_arn]

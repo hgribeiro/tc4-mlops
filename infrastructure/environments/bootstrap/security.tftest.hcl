@@ -134,7 +134,7 @@ run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_op
   }
 
   assert {
-    condition     = strcontains(aws_iam_policy.automation_boundary.policy, "UseSeparateDemoStateAndLockfile") && !strcontains(aws_iam_policy.automation_boundary.policy, "iam:*")
+    condition     = strcontains(aws_iam_policy.automation_boundary.policy, "DemoStateRW") && !strcontains(aws_iam_policy.automation_boundary.policy, "iam:*")
     error_message = "A boundary deve permitir o state separado da demo sem liberar IAM amplo."
   }
 }
@@ -145,9 +145,9 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   assert {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
-      length([for statement in policy : statement if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "ReadConcreteDemoBucketProviderRefreshState"])) == toset(local.demo_s3_arns)
+      length([for statement in policy : statement if statement.Sid == "DemoBucketRefresh"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "DemoBucketRefresh"])) == toset(["s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketVersioning", "s3:GetAccelerateConfiguration", "s3:GetBucketRequestPayment", "s3:GetBucketLogging", "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration", "s3:GetEncryptionConfiguration", "s3:GetBucketObjectLockConfiguration"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "DemoBucketRefresh"])) == toset(local.demo_s3_arns)
     ])
     error_message = "As duas camadas devem permitir exatamente os reads S3 do refresh somente nos buckets concretos da demo."
   }
@@ -155,9 +155,9 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   assert {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
-      length([for statement in policy : statement if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"])) == toset(["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "ReadConcreteDemoRuntimeRoleProviderRefreshState"])) == toset([local.demo_runtime_role])
+      length([for statement in policy : statement if statement.Sid == "DemoRoleRefresh"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "DemoRoleRefresh"])) == toset(["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "DemoRoleRefresh"])) == toset([local.demo_runtime_role])
     ])
     error_message = "As duas camadas devem permitir exatamente os reads IAM do refresh somente na role runtime concreta."
   }
@@ -165,22 +165,30 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   assert {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
-      length([for statement in policy : statement if statement.Sid == "TagRequestedDemoCloudFrontDistribution"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "TagRequestedDemoCloudFrontDistribution"])) == toset(["cloudfront:TagResource"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "TagRequestedDemoCloudFrontDistribution"])) == toset([local.demo_cloudfront_distribution_arn]) &&
-      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "TagRequestedDemoCloudFrontDistribution"]) == { "aws:RequestTag/Project" = "tc4-mlops", "aws:RequestTag/Environment" = "demo", "aws:RequestTag/ManagedBy" = "terraform" } &&
-      length([for statement in policy : statement if statement.Sid == "RetagExistingDemoCloudFrontDistribution"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "RetagExistingDemoCloudFrontDistribution"])) == toset(["cloudfront:TagResource", "cloudfront:UntagResource"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "RetagExistingDemoCloudFrontDistribution"])) == toset([local.demo_cloudfront_distribution_arn]) &&
-      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "RetagExistingDemoCloudFrontDistribution"]) == { "aws:ResourceTag/Project" = "tc4-mlops", "aws:ResourceTag/Environment" = "demo", "aws:ResourceTag/ManagedBy" = "terraform" }
+      length([for statement in policy : statement if statement.Sid == "CFTagCreate"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "CFTagCreate"])) == toset(["cloudfront:TagResource"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "CFTagCreate"])) == toset([local.demo_cloudfront_distribution_arn]) &&
+      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "CFTagCreate"]) == { "aws:RequestTag/Project" = "tc4-mlops", "aws:RequestTag/Environment" = "demo", "aws:RequestTag/ManagedBy" = "terraform" } &&
+      length([for statement in policy : statement if statement.Sid == "CFRetag"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "CFRetag"])) == toset(["cloudfront:TagResource", "cloudfront:UntagResource"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "CFRetag"])) == toset([local.demo_cloudfront_distribution_arn]) &&
+      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "CFRetag"]) == { "aws:ResourceTag/Project" = "tc4-mlops", "aws:ResourceTag/Environment" = "demo", "aws:ResourceTag/ManagedBy" = "terraform" }
     ])
     error_message = "As duas camadas devem permitir tagging CloudFront somente quando as tags identificam a demo gerenciada."
   }
 
   assert {
     condition = alltrue([
-      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]), "ecr:BatchCheckLayerAvailability"),
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "apigateway:PUT"),
+      contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "CreateAndReadOnlyRequiredControlPlaneResources"]), "apigateway:PUT"),
+      length([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement if statement.Sid == "ApiGwServiceRole" && statement.Condition.StringEquals["iam:AWSServiceName"] == "ops.apigateway.amazonaws.com"]) == 1,
+      length([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement if statement.Sid == "ApiGwServiceRole" && statement.Condition.StringEquals["iam:AWSServiceName"] == "ops.apigateway.amazonaws.com"]) == 1,
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "ecr:SetRepositoryPolicy"),
+      contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:SetRepositoryPolicy"),
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "ecr:BatchCheckLayerAvailability"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:BatchCheckLayerAvailability"),
+      contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:GetDownloadUrlForLayer"),
+      contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteDataAndRuntimeResources"]), "s3:ListTagsForResource"),
       toset(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteEcrAndLambda"])) == toset([local.demo_ecr_arn]),
     ])
     error_message = "As duas camadas devem permitir o protocolo de push ECR, mantendo a policy inline restrita ao repositório concreto da demo."
@@ -189,12 +197,12 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   assert {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
-      length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset(["ecr:DeleteLifecyclePolicy"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset([local.demo_ecr_arn]) &&
-      length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoLogGroup"]) == 1 &&
-      toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoLogGroup"])) == toset(["logs:DeleteLogGroup"]) &&
-      toset(one([for statement in policy : statement.Resource if statement.Sid == "ManageConcreteDemoLogGroup"])) == toset([local.demo_log_group_arn])
+      length([for statement in policy : statement if statement.Sid == "EcrLifecycle"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "EcrLifecycle"])) == toset(["ecr:DeleteLifecyclePolicy"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "EcrLifecycle"])) == toset([local.demo_ecr_arn]) &&
+      length([for statement in policy : statement if statement.Sid == "DemoLogGroup"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "DemoLogGroup"])) == toset(["logs:DeleteLogGroup"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "DemoLogGroup"])) == toset([local.demo_log_group_arn])
     ])
     error_message = "As duas camadas devem permitir os dois deletes evidenciados somente nos recursos concretos da demo."
   }
