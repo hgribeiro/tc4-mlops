@@ -27,6 +27,13 @@ CLOUDFRONT_DEMO_TAGS = {
     '"aws:ResourceTag/Environment" = "demo"',
     '"aws:ResourceTag/ManagedBy"   = "terraform"',
 }
+ECR_IMAGE_PUSH_ACTIONS = {
+    "ecr:BatchCheckLayerAvailability",
+    "ecr:InitiateLayerUpload",
+    "ecr:UploadLayerPart",
+    "ecr:CompleteLayerUpload",
+    "ecr:PutImage",
+}
 TEARDOWN_DELETES = {
     "ManageConcreteDemoEcrLifecyclePolicy": (
         {"ecr:DeleteLifecyclePolicy"},
@@ -103,6 +110,24 @@ def test_s3_encryption_refresh_uses_the_iam_action_for_get_bucket_encryption():
     source = BOOTSTRAP.read_text()
     assert '"s3:GetBucketEncryption"' not in source
     assert '"s3:GetEncryptionConfiguration"' in source
+
+
+def test_ecr_image_push_protocol_is_allowed_in_both_policy_layers():
+    source = BOOTSTRAP.read_text()
+    boundary = _resource_block(source, 'resource "aws_iam_policy" "automation_boundary"')
+    deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
+
+    boundary_actions, boundary_resource = _statement_actions_and_resource(
+        boundary, "ManageNamedTemporaryDemoResources"
+    )
+    deploy_actions, deploy_resource = _statement_actions_and_resource(
+        deploy_policy, "OperateConcreteEcrAndLambda"
+    )
+
+    assert ECR_IMAGE_PUSH_ACTIONS <= boundary_actions
+    assert boundary_resource == '"*"'
+    assert ECR_IMAGE_PUSH_ACTIONS <= deploy_actions
+    assert deploy_resource == "[local.demo_ecr_arn]"
 
 
 def test_evidenced_teardown_deletes_are_exact_and_scoped_in_both_policy_layers():

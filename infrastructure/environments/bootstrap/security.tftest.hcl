@@ -179,6 +179,15 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
 
   assert {
     condition = alltrue([
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "ManageNamedTemporaryDemoResources"]), "ecr:BatchCheckLayerAvailability"),
+      contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:BatchCheckLayerAvailability"),
+      toset(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "OperateConcreteEcrAndLambda"])) == toset([local.demo_ecr_arn]),
+    ])
+    error_message = "As duas camadas devem permitir o protocolo de push ECR, mantendo a policy inline restrita ao repositório concreto da demo."
+  }
+
+  assert {
+    condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
       length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"]) == 1 &&
       toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset(["ecr:DeleteLifecyclePolicy"]) &&
