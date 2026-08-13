@@ -83,11 +83,15 @@ def test_residue_verifier_checks_temporary_families_state_lock_and_bootstrap_bud
         "aws lambda get-function", "aws apigatewayv2 get-apis",
         "aws cloudfront list-distributions", "list-origin-access-controls",
         "cloudwatch-log-group", "cloudwatch-dashboard", "cloudwatch-alarm",
+        'aws cloudwatch get-dashboard --dashboard-name "${prefix}-dashboard"',
         "demo-state", "demo-lock", "bootstrap/terraform.tfstate",
         "tc4-mlops-github-deploy", "list-open-id-connect-providers", "get-policy",
         "budgets describe-budget", "--allow-active-demo-state",
     ):
         assert expected in verifier
+    assert "cloudwatch list-dashboards" not in verifier
+    assert 's3api head-bucket --bucket "$state_bucket"' not in verifier
+    assert 's3api head-object --bucket $state_bucket --key $bootstrap_key' in verifier
 
 
 def test_bootstrap_budget_is_persistent_monthly_actual_alert_with_one_email_variable():
