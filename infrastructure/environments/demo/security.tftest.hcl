@@ -1,5 +1,10 @@
 mock_provider "aws" {}
 
+override_data {
+  target = data.aws_caller_identity.current
+  values = { account_id = "969212888717" }
+}
+
 override_resource {
   target = aws_iam_role.lambda
   values = { arn = "arn:aws:iam::969212888717:role/tc4-mlops-demo-969212888717-lambda" }
@@ -59,6 +64,17 @@ run "uses_immutable_image_and_conservative_public_api_limits" {
   assert {
     condition     = aws_ecr_repository.api.image_tag_mutability == "IMMUTABLE" && aws_lambda_function.api[0].package_type == "Image" && aws_lambda_function.api[0].timeout == 10 && aws_lambda_function.api[0].reserved_concurrent_executions == 2
     error_message = "The post-quota Lambda container mode must use immutable ECR tags, timeout 10 and reserved concurrency 2."
+  }
+
+  assert {
+    condition = jsondecode(aws_ecr_repository_policy.lambda_pull.policy).Statement == [{
+      Sid       = "AllowLambdaToPullDemoImage"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+      Condition = { StringLike = { "aws:SourceArn" = "arn:aws:lambda:us-east-1:969212888717:function:tc4-mlops-demo-969212888717-api" } }
+    }]
+    error_message = "Only the demo Lambda service principal may pull layers from the private ECR repository."
   }
 
   assert {

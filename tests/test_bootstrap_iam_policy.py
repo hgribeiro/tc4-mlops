@@ -27,19 +27,25 @@ CLOUDFRONT_DEMO_TAGS = {
     '"aws:ResourceTag/Environment" = "demo"',
     '"aws:ResourceTag/ManagedBy"   = "terraform"',
 }
+ECR_REPOSITORY_POLICY_ACTIONS = {
+    "ecr:GetRepositoryPolicy",
+    "ecr:SetRepositoryPolicy",
+    "ecr:DeleteRepositoryPolicy",
+}
 ECR_IMAGE_PUSH_ACTIONS = {
     "ecr:BatchCheckLayerAvailability",
+    "ecr:GetDownloadUrlForLayer",
     "ecr:InitiateLayerUpload",
     "ecr:UploadLayerPart",
     "ecr:CompleteLayerUpload",
     "ecr:PutImage",
 }
 TEARDOWN_DELETES = {
-    "ManageConcreteDemoEcrLifecyclePolicy": (
+    "EcrLifecycle": (
         {"ecr:DeleteLifecyclePolicy"},
         "[local.demo_ecr_arn]",
     ),
-    "ManageConcreteDemoLogGroup": (
+    "DemoLogGroup": (
         {"logs:DeleteLogGroup"},
         "[local.demo_log_group_arn]",
     ),
@@ -71,10 +77,10 @@ def test_provider_refresh_reads_are_exact_and_scoped_in_both_policy_layers():
 
     for policy in (boundary, deploy_policy):
         bucket_actions, bucket_resource = _statement_actions_and_resource(
-            policy, "ReadConcreteDemoBucketProviderRefreshState"
+            policy, "DemoBucketRefresh"
         )
         role_actions, role_resource = _statement_actions_and_resource(
-            policy, "ReadConcreteDemoRuntimeRoleProviderRefreshState"
+            policy, "DemoRoleRefresh"
         )
         assert bucket_actions == BUCKET_REFRESH_READS
         assert bucket_resource == "local.demo_s3_arns"
@@ -91,10 +97,10 @@ def test_cloudfront_tagging_is_exact_and_scoped_in_both_policy_layers():
 
     for policy in (boundary, deploy_policy):
         request_actions, request_resource = _statement_actions_and_resource(
-            policy, "TagRequestedDemoCloudFrontDistribution"
+            policy, "CFTagCreate"
         )
         existing_actions, existing_resource = _statement_actions_and_resource(
-            policy, "RetagExistingDemoCloudFrontDistribution"
+            policy, "CFRetag"
         )
         assert request_actions == {"cloudfront:TagResource"}
         assert existing_actions == {
@@ -118,7 +124,7 @@ def test_ecr_image_push_protocol_is_allowed_in_both_policy_layers():
     deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
 
     boundary_actions, boundary_resource = _statement_actions_and_resource(
-        boundary, "ManageNamedTemporaryDemoResources"
+        boundary, "DemoOperations"
     )
     deploy_actions, deploy_resource = _statement_actions_and_resource(
         deploy_policy, "OperateConcreteEcrAndLambda"
@@ -128,6 +134,45 @@ def test_ecr_image_push_protocol_is_allowed_in_both_policy_layers():
     assert boundary_resource == '"*"'
     assert ECR_IMAGE_PUSH_ACTIONS <= deploy_actions
     assert deploy_resource == "[local.demo_ecr_arn]"
+
+
+def test_api_gateway_tagging_and_ecr_repository_policy_are_allowed_in_both_layers():
+    source = BOOTSTRAP.read_text()
+    boundary = _resource_block(source, 'resource "aws_iam_policy" "automation_boundary"')
+    deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
+
+    boundary_actions, _ = _statement_actions_and_resource(
+        boundary, "DemoOperations"
+    )
+    control_actions, control_resource = _statement_actions_and_resource(
+        deploy_policy, "CreateAndReadOnlyRequiredControlPlaneResources"
+    )
+    ecr_actions, ecr_resource = _statement_actions_and_resource(
+        deploy_policy, "OperateConcreteEcrAndLambda"
+    )
+
+    assert "apigateway:PUT" in boundary_actions
+    assert "apigateway:PUT" in control_actions
+    assert "apigateway:TagResource" not in source
+    assert "apigateway:UntagResource" not in source
+    assert control_resource == '"*"'
+    assert ECR_REPOSITORY_POLICY_ACTIONS <= boundary_actions
+    assert ECR_REPOSITORY_POLICY_ACTIONS <= ecr_actions
+    assert ecr_resource == "[local.demo_ecr_arn]"
+
+    for policy in (boundary, deploy_policy):
+        service_linked_actions, service_linked_resource = _statement_actions_and_resource(
+            policy, "ApiGwServiceRole"
+        )
+        assert service_linked_actions == {"iam:CreateServiceLinkedRole"}
+        assert "ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway" in service_linked_resource
+        assert '"iam:AWSServiceName" = "ops.apigateway.amazonaws.com"' in policy
+
+    bucket_actions, bucket_resource = _statement_actions_and_resource(
+        deploy_policy, "OperateConcreteDataAndRuntimeResources"
+    )
+    assert "s3:ListTagsForResource" in bucket_actions
+    assert bucket_resource == "local.demo_s3_arns"
 
 
 def test_evidenced_teardown_deletes_are_exact_and_scoped_in_both_policy_layers():
@@ -142,5 +187,5 @@ def test_evidenced_teardown_deletes_are_exact_and_scoped_in_both_policy_layers()
             assert resource == expected_resource
 
     assert '"logs:DeleteLogGroup"' not in _statement_actions_and_resource(
-        boundary, "ManageNamedTemporaryDemoResources"
+        boundary, "DemoOperations"
     )[0]
