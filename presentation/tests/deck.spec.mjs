@@ -13,6 +13,10 @@ test('deck 16:9 oferece narrativa principal, notas e apêndice', async ({ page }
   await expect(page.locator('.slides > section[data-main-slide]')).toHaveCount(12);
   await expect(page.locator('.slides > section[data-appendix-slide]')).toHaveCount(5);
   await expect(page.locator('.slides > section[data-main-slide] aside.notes')).toHaveCount(12);
+  await expect(page.locator('.slides > section[data-main-slide] aside.notes .note-goal')).toHaveCount(12);
+  await expect(page.locator('.slides > section[data-main-slide] aside.notes .note-script')).toHaveCount(12);
+  await expect(page.locator('.slides > section[data-main-slide] aside.notes .note-interpretation')).toHaveCount(12);
+  await expect(page.locator('.slides > section[data-main-slide] aside.notes .note-caution')).toHaveCount(12);
 
   const config = await page.evaluate(() => ({
     width: window.Reveal.getConfig().width,
@@ -24,6 +28,8 @@ test('deck 16:9 oferece narrativa principal, notas e apêndice', async ({ page }
   await expect(page.locator('.slides > section.present')).toHaveAttribute('id', 'problem');
   await expect(page.locator('#responsible-next-step')).toHaveCount(1);
   await expect(page.locator('#journey-boundaries')).toHaveCount(1);
+  await expect(page.getByText('MLflow local', { exact: false })).toHaveCount(1);
+  await expect(page.getByText('AWS está ativa nesta demo', { exact: false })).toHaveCount(1);
 });
 
 test('Plotly deriva gráficos e ressalvas do relatório oficial', async ({ page }) => {

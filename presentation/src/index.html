@@ -17,7 +17,7 @@
         <p class="lead">Personalização auditável em jornadas sintéticas de Empréstimos com Garantia.</p>
         <div class="title-rule"></div>
         <p class="small">Pitch executivo · 4min50s · use <kbd>S</kbd> para speaker notes</p>
-        <aside class="notes">[0:00–0:20] Lary, este laboratório não vende nem aprova crédito. Ele aprende qual próximo passo de jornada pode gerar avanço qualificado sem abrir mão de Guardrails, explicação e auditoria.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> O que a banca deve entender: o produto decide um próximo passo de jornada, não crédito.</p><p class="note-script"><strong>Fala sugerida:</strong> [0:00–0:20] “Lary, este laboratório não vende nem aprova crédito. Ele compara formas de escolher o próximo passo — simular, educar, pedir documentos, chamar especialista ou não ofertar — com Guardrails, explicação e auditoria.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> “Próximo passo responsável” significa a melhor ação permitida para aquele contexto sintético. MLE/MLOps aqui é o ciclo de dados, experimento, política versionada, deployment, observabilidade e rollback.</p><p class="note-caution"><strong>Cuidado:</strong> Não diga que o sistema personaliza crédito real ou está pronto para produção regulada.</p></aside>
       </section>
 
       <section id="problem" data-main-slide data-time="0:20–0:45">
@@ -28,7 +28,7 @@
           <div class="card good"><strong>A oportunidade</strong><p>Comparar um Baseline Determinístico com uma Política Adaptativa, sempre dentro do conjunto seguro.</p></div>
         </div>
         <p class="takeaway">Objetivo: aprender com mensuração, sem transformar recomendação em concessão.</p>
-        <aside class="notes">[0:20–0:45] A pergunta da BU não é “qual crédito vender?”. É como aprender mais rápido que uma regra fixa, preservando a experiência e os limites de autoridade. Clique não é nossa métrica final.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Explicar por que existe uma política adaptativa e por que o baseline continua necessário.</p><p class="note-script"><strong>Fala sugerida:</strong> [0:20–0:45] “Uma regra fixa é previsível e serve como referência, mas não aprende diferenças entre garantia, canal e estágio. A adaptativa testa alternativas seguras. Nossa métrica não é clique: é uma recompensa sintética de avanço qualificado na jornada.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Baseline é a regra simples contra a qual medimos ganho. Política adaptativa é Thompson Sampling contextual, que aprende probabilidades por contexto, mas somente entre ações previamente elegíveis.</p><p class="note-caution"><strong>Cuidado:</strong> “Aprender mais rápido” é resultado do simulador offline; não é ganho causal observado em clientes.</p></aside>
       </section>
 
       <section id="responsible-next-step" data-main-slide data-time="0:45–1:10">
@@ -43,7 +43,7 @@ flowchart LR
   A --> L[Reason Codes + log auditável]
         </pre>
         <p class="small">A Política Adaptativa não contorna Guardrails e não decide Aprovação.</p>
-        <aside class="notes">[0:45–1:10] A ordem é a garantia central: primeiro Guardrails, depois Braços elegíveis, só então baseline ou adaptativa. Toda saída preserva Reason Codes, revisão humana quando necessária e referência auditável.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Mostrar a ordem de decisão e deixar claro que a política não pode furar os controles.</p><p class="note-script"><strong>Fala sugerida:</strong> [0:45–1:10] “O contexto entra primeiro nos Guardrails. Eles removem ações inadequadas e produzem o conjunto elegível. Só depois baseline ou adaptativa escolhe uma ação. A saída inclui Reason Codes e uma referência de auditoria.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Braço é uma ação possível. Reason Code explica a escolha. Guardrail é uma restrição obrigatória. Humano no Loop transfere casos que exigem julgamento para especialista.</p><p class="note-caution"><strong>Cuidado:</strong> Não apresente o bandit como substituto de elegibilidade, risco, compliance ou aprovação.</p></aside>
       </section>
 
       <section id="journey-boundaries" data-main-slide data-time="1:10–1:30">
@@ -57,7 +57,7 @@ flowchart LR
           <div class="stage blocked"><span>5</span><strong>Contratação</strong><small>Fora do escopo</small></div>
         </div>
         <p class="takeaway">Nenhuma saída define taxa, limite, Aprovação ou Contratação real.</p>
-        <aside class="notes">[1:10–1:30] Recomendação orienta a jornada. Simulação explora uma possibilidade. Proposta Qualificada Simulada exige conclusão e dados mínimos. Aprovação e Contratação são decisões formais fora deste laboratório. Também não calculamos taxa nem limite.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Distinguir os cinco termos que costumam ser confundidos em crédito.</p><p class="note-script"><strong>Fala sugerida:</strong> [1:10–1:30] “Recomendação indica o próximo passo. Simulação permite explorar condições hipotéticas. Proposta Qualificada Simulada significa que a jornada foi concluída com dados mínimos para pré-análise. Aprovação e Contratação são decisões formais fora deste laboratório.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> O MVP termina antes de aprovação. Ele também não calcula taxa ou limite. “Qualificada” descreve completude sintética da jornada, não qualidade creditícia real.</p><p class="note-caution"><strong>Cuidado:</strong> Nunca use “cliente aprovado”, “oferta aprovada” ou “crédito concedido” para descrever uma saída.</p></aside>
       </section>
 
       <section id="evidence" data-main-slide data-time="1:30–1:55">
@@ -73,7 +73,7 @@ flowchart LR
           <li><code>duration</code> e atributos pessoais/financeiros excluídos da decisão.</li>
           <li>Recompensas e contextos de garantia são sintéticos e reproduzíveis.</li>
         </ul>
-        <aside class="notes">[1:30–1:55] A evidência oficial usa <span data-metric="sample">—</span> registros da base completa em <span data-metric="seed-count">—</span> seeds. A base pública é apenas proxy de resposta. Duration criaria vazamento temporal e foi removida, assim como atributos que não aceitamos para personalização.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Explicar origem, volume e preparação dos dados sem superestimar sua adequação ao domínio.</p><p class="note-script"><strong>Fala sugerida:</strong> [1:30–1:55] “Executamos 45.211 registros em cada uma de cinco seeds. Bank Marketing é uma proxy pública de resposta a contato, não uma base de empréstimos com garantia. Removemos duration porque só existe após o contato e causaria vazamento temporal.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Seed fixa a aleatoriedade e permite repetir a execução. Cada seed percorre a base completa. Garantias, estágios e recompensas são enriquecimentos sintéticos documentados.</p><p class="note-caution"><strong>Cuidado:</strong> Volume e repetibilidade não transformam proxy em evidência bancária real.</p></aside>
       </section>
 
       <section id="aggregate-reward" data-main-slide data-time="1:55–2:25">
@@ -81,7 +81,7 @@ flowchart LR
         <div class="chart-title-row"><h2>Mais avanço qualificado <span class="accent">simulado.</span></h2><div class="hero-metric"><strong data-metric="uplift">—</strong><span>uplift absoluto médio</span></div></div>
         <div id="reward-chart" class="chart" aria-label="Comparação da recompensa acumulada média"></div>
         <p class="caveat">Recompensa binária acumulada no simulador · sintética, offline e não causal · não é conversão observada.</p>
-        <aside class="notes">[1:55–2:25] Na média de <span data-metric="seed-count">—</span> execuções, a recompensa acumulada passou de <span data-metric="baseline-reward">—</span> no baseline para <span data-metric="adaptive-reward">—</span> na adaptativa: uplift absoluto de <span data-metric="uplift">—</span>. É avanço qualificado no simulador, não conversão observada e não evidência causal.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Ensinar a leitura do principal gráfico e a unidade dos valores.</p><p class="note-script"><strong>Fala sugerida:</strong> [1:55–2:25] “A barra soma resultados binários sintéticos ao longo de 45.211 decisões por seed. A média foi de 30.513,2 no baseline e 35.947,4 na adaptativa; a diferença média é +5.434,2 resultados simulados.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Recompensa 1 representa um desfecho sintético de jornada qualificada segundo coeficientes declarados; 0 representa ausência desse desfecho. Uplift absoluto é adaptativa menos baseline, não percentual.</p><p class="note-caution"><strong>Cuidado:</strong> Não chame a recompensa de receita, contratação, aprovação ou conversão real. Não há inferência causal.</p></aside>
       </section>
 
       <section id="uplift-by-seed" data-main-slide data-time="2:25–2:50">
@@ -89,7 +89,7 @@ flowchart LR
         <h2>O uplift aparece nas <span class="accent" data-metric="seed-count">—</span> seeds.</h2>
         <div id="uplift-chart" class="chart" aria-label="Uplift absoluto por seed"></div>
         <p class="caveat">Variação descritiva entre seeds; não representa intervalo de confiança causal.</p>
-        <aside class="notes">[2:25–2:50] Em vez de mostrar uma única execução, exibimos todas as seeds oficiais. A dispersão do uplift é pequena neste simulador, mas isso não é intervalo causal nem previsão de performance bancária.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Mostrar robustez à aleatoriedade sem transformar dispersão em estatística causal.</p><p class="note-script"><strong>Fala sugerida:</strong> [2:25–2:50] “As cinco seeds produziram uplift entre 5.388 e 5.480. Mostrar todas evita selecionar apenas uma execução favorável e demonstra que o simulador é estável sob essas sementes.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Cada ponto é uma repetição determinística com uma seed diferente. O desvio-padrão descritivo do uplift é 34,5 resultados sintéticos.</p><p class="note-caution"><strong>Cuidado:</strong> Cinco seeds não são cinco experimentos com clientes e não formam intervalo de confiança causal.</p></aside>
       </section>
 
       <section id="policy-behavior" data-main-slide data-time="2:50–3:15">
@@ -101,7 +101,7 @@ flowchart LR
           <div class="metric"><strong data-metric="exploration">—</strong><span>taxa média de exploração</span></div>
         </div>
         <p class="takeaway">Thompson Sampling contextual simplificado · priors Beta(1,1) · rollback para o baseline.</p>
-        <aside class="notes">[2:50–3:15] A política registra recompensa, regret e exploração. A taxa média de exploração foi <span data-metric="exploration">—</span>. A política pode ser pausada e o baseline permanece como rollback explícito; não há promoção automática.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Explicar recompensa, regret e exploração em linguagem executiva.</p><p class="note-script"><strong>Fala sugerida:</strong> [2:50–3:15] “Recompensa mede acertos sintéticos acumulados. Regret, 59,7 em média, mede quanto o algoritmo deixou de obter frente à melhor ação conhecida pelo simulador. Exploração, 0,22%, mede decisões usadas para aprender entre ações elegíveis.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Thompson Sampling amostra crenças Beta(1,1) por contexto e ação. Conforme recebe recompensas simuladas, explora menos e favorece ações com melhor evidência. Rollback troca a política adaptativa pelo baseline versionado.</p><p class="note-caution"><strong>Cuidado:</strong> Exploração baixa não prova segurança; Guardrails, testes, monitoramento e aprovação humana é que limitam risco.</p></aside>
       </section>
 
       <section id="arm-exposure" data-main-slide data-time="3:15–3:40">
@@ -109,7 +109,7 @@ flowchart LR
         <h2>Cada Braço precisa ser <span class="accent">visível.</span></h2>
         <div id="exposure-chart" class="chart chart-tall" aria-label="Exposição média por Braço"></div>
         <p class="caveat">Escala logarítmica para revelar baixa exposição · imóvel <span data-metric="low-home-exposure">—</span> e investimentos <span data-metric="low-investment-exposure">—</span> exigem cautela.</p>
-        <aside class="notes">[3:15–3:40] A exposição mostra onde a política de fato atuou. Imóvel e investimentos tiveram pouquíssima exposição média. Isso aparece, não é escondido, e impede interpretar a cobertura como eficácia real nesses Braços.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Mostrar por que distribuição de decisões é uma métrica de governança.</p><p class="note-script"><strong>Fala sugerida:</strong> [3:15–3:40] “Exposição conta quantas vezes cada Braço foi escolhido, em média por seed. A escala é logarítmica. Simulação de imóvel teve 3,8 exposições e investimentos 0,8; portanto não temos cobertura suficiente para falar em eficácia nesses casos.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> O baseline tem zeros estruturais porque escolhe conteúdo educativo ou no_offer_now. A adaptativa expõe os sete Braços, mas de forma muito desigual.</p><p class="note-caution"><strong>Cuidado:</strong> Não compare visualmente comprimentos na escala logarítmica como se fossem diferenças lineares; baixa exposição é limitação, não vitória.</p></aside>
       </section>
 
       <section id="responsible-scenes" data-main-slide data-time="3:40–4:20">
@@ -121,7 +121,7 @@ flowchart LR
           <article><div class="scene-number">03</div><h3>Risco crítico</h3><code>no_offer_now</code><p>Guardrail restringe o conjunto elegível.</p></article>
         </div>
         <p class="small">Toda decisão válida: versão da política · Reason Codes · Guardrails · referência auditável.</p>
-        <aside class="notes">[3:40–4:20] A cena simples inicia uma Simulação de veículo no SuperApp. O imóvel complexo vai ao especialista. O caso crítico aciona Guardrail e restringe a decisão a no_offer_now. Em todas, explicação e auditoria acompanham a saída.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Conectar o modelo abstrato a três jornadas fáceis de narrar.</p><p class="note-script"><strong>Fala sugerida:</strong> [3:40–4:20] “No veículo simples, a ação é simular no SuperApp. No imóvel complexo, a ação é encaminhar ao especialista e marcar revisão humana. No contexto crítico, o Guardrail restringe o conjunto a no_offer_now. As três decisões registram versão, razões e auditoria.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> Veículo demonstra autosserviço; imóvel demonstra canal híbrido; risco crítico demonstra abstinência responsável. Uma decisão individual ilustra comportamento, não comprova uplift.</p><p class="note-caution"><strong>Cuidado:</strong> Não diga que no_offer_now reprova crédito; significa somente não ofertar nem simular naquele momento.</p></aside>
       </section>
 
       <section id="closing" data-main-slide data-time="4:20–4:50">
@@ -132,7 +132,7 @@ flowchart LR
           <div><h3>O que não alegamos</h3><ul><li>efeito causal ou fairness validada;</li><li>delayed rewards reais;</li><li>prontidão regulada ou eficácia bancária.</li></ul></div>
         </div>
         <p class="closing">Próximo passo: validar a política e a jornada com risco, produto e compliance — antes de qualquer uso além da demo.</p>
-        <aside class="notes">[4:20–4:50] O valor é um ciclo mensurável e auditável, não uma promessa de produção. Ainda faltam validação de fairness, delayed rewards reais e avaliação regulatória. A decisão responsável agora é validar premissas com produto, risco e compliance.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Fechar com uma decisão executiva plausível, as evidências e as lacunas.</p><p class="note-script"><strong>Fala sugerida:</strong> [4:20–4:50] “Demonstramos comparação reproduzível, Guardrails anteriores à política, explicação, auditoria, deployment AWS e rollback. Não demonstramos causalidade, fairness validada, delayed rewards reais nem prontidão regulada. O próximo passo é validar premissas com produto, risco e compliance.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> A recomendação é avançar para validação controlada do método e da jornada, não promover automaticamente a política. O baseline continua disponível como fallback.</p><p class="note-caution"><strong>Cuidado:</strong> Encerre com uma decisão e uma limitação; evite a frase genérica “IA aumenta conversão”.</p></aside>
       </section>
 
       <section id="interactive-demo" data-main-slide data-time="4:50–5:00">
@@ -171,7 +171,7 @@ flowchart LR
           </div>
           <div class="decision-flags"><strong>Humano no Loop: <span id="human-review">—</span></strong><span id="authority-flags"></span></div>
         </div>
-        <aside class="notes">[4:50–5:00] Escolha somente um cenário oficial e um modo. A origem da resposta permanece visível. Se a API falhar, a contingência exige confirmação explícita; ela não é aprovação, contratação, taxa ou limite real.</aside>
+        <aside class="notes"><p class="note-goal"><strong>Objetivo:</strong> Executar uma decisão real na API AWS e ensinar os campos retornados.</p><p class="note-script"><strong>Fala sugerida:</strong> [4:50–5:00] “Escolho cenário e modo e consulto a API ao vivo. selected_action é o próximo passo; eligible_actions mostra o espaço permitido; policy_version identifica a regra; Reason Codes explicam; Guardrails registram restrições; audit_log_ref aponta para o log minimizado.”</p><p class="note-interpretation"><strong>Como interpretar:</strong> “AO VIVO” chama API Gateway e Lambda. “CONTINGÊNCIA” lê JSON estático versionado e exige confirmação. MLflow não está hospedado nesta AWS: abra localmente com mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000.</p><p class="note-caution"><strong>Cuidado:</strong> Não abra o audit_log_ref como URL pública: o bucket é privado. Não confunda contingência com resposta da API.</p></aside>
       </section>
 
       <section id="experiment-contract" data-appendix-slide>
@@ -184,7 +184,7 @@ flowchart LR
           <tr><th>Target proxy</th><td>Usado somente pelo ambiente do simulador</td></tr>
         </tbody></table>
         <p class="caveat">Guardrails calculam ações elegíveis antes de qualquer seleção.</p>
-        <aside class="notes">Apêndice. O contrato completo está no relatório oficial empacotado. O target observado da base não é uma feature de decisão.</aside>
+        <aside class="notes"><p><strong>Leitura:</strong> o baseline é a referência simples; a adaptativa usa Thompson Sampling por contexto; o horizonte é a quantidade de decisões processadas em cada seed. O target público ajuda somente a parametrizar o ambiente sintético e nunca entra como atributo da decisão.</p><p><strong>Fonte:</strong> <code>data/report.json</code> e <code>docs/experiments/offline-bandit.md</code>.</p></aside>
       </section>
 
       <section id="official-metrics" data-appendix-slide>
@@ -197,7 +197,7 @@ flowchart LR
           <tr><td>Regret acumulado</td><td data-metric="regret">—</td><td>Referência do simulador</td></tr>
           <tr><td>Exploração</td><td data-metric="exploration">—</td><td>Entre Braços elegíveis</td></tr>
         </tbody></table>
-        <aside class="notes">Apêndice. Números lidos automaticamente de report.json durante o build.</aside>
+        <aside class="notes"><p><strong>Leitura:</strong> recompensa é soma de resultados binários sintéticos; uplift é a diferença absoluta adaptativa menos baseline; regret compara a política com a melhor ação conhecida pelo simulador; exploração registra escolhas feitas para aprender.</p><p><strong>Cuidado:</strong> nenhuma dessas métricas representa dinheiro, aprovação, contratação ou causalidade.</p></aside>
       </section>
 
       <section id="coverage-limitations" data-appendix-slide>
@@ -207,7 +207,7 @@ flowchart LR
           <div class="card"><h3>Zeros estruturais</h3><p>O baseline fixo não expõe <span data-metric="baseline-structural-zero-count">—</span> Braços. Isso é esperado pela estratégia, não erro do gráfico.</p></div>
         </div>
         <ul class="compact"><li>Sem contrafactuais multi-arm randomizados.</li><li>Sem evidência real de crédito.</li><li>Sem fairness detalhada ou delayed rewards reais.</li></ul>
-        <aside class="notes">Apêndice. A revisão de cobertura está registrada no manifesto de proveniência oficial.</aside>
+        <aside class="notes"><p><strong>Leitura:</strong> baixa exposição significa pouca oportunidade de aprender sobre um Braço. Zero estrutural significa que a estratégia do baseline nunca escolhe aquela ação por definição — não é falha de coleta.</p><p><strong>Decisão:</strong> ampliar e revisar contextos antes de qualquer alegação sobre imóvel ou investimentos.</p></aside>
       </section>
 
       <section id="aws-architecture" data-appendix-slide>
@@ -223,8 +223,8 @@ flowchart LR
   LA --> CW[CloudWatch minimizado]
         </pre>
         <table><tbody><tr><th>AWS executada</th><th>Azure equivalente conceitual</th></tr><tr><td>CloudFront/S3 · API Gateway/Lambda/ECR · S3/CloudWatch</td><td>Front Door/Blob · API Management/Functions/Registry · Blob/Monitor</td></tr></tbody></table>
-        <p class="caveat">AWS foi executada no #25 e destruída no #27. Azure não foi implantada nem validada; não é multicloud. EventBridge/SQS/worker de Delayed Rewards são evolução futura não provisionada.</p>
-        <aside class="notes">Apêndice. Separe as provas: AWS live é evidência histórica do #25, hoje offline/destroyed; LocalStack prova apenas API Gateway REST, Lambda ZIP e S3; a contingência é estática e versionada. Azure é somente equivalência conceitual, sem deployment ou validação.</aside>
+        <p class="caveat">AWS está ativa nesta demo e é temporária. Azure não foi implantada nem validada; não é multicloud. EventBridge/SQS/worker de Delayed Rewards são evolução futura não provisionada.</p>
+        <aside class="notes"><p><strong>Leitura atual:</strong> o navegador carrega o deck privado via CloudFront/S3 e chama API Gateway/Lambda; a imagem está no ECR; decisões minimizadas vão para S3 e métricas para CloudWatch. O MLflow permanece local e não faz parte desta topologia AWS.</p><p><strong>Cuidado:</strong> Azure é somente equivalência conceitual. EventBridge, SQS e worker de delayed rewards são evolução futura.</p></aside>
       </section>
 
       <section id="reproduction" data-appendix-slide>
@@ -236,7 +236,7 @@ flowchart LR
           <li><a href="data/policy.json">Política</a> — artefato adaptativo versionado</li>
         </ul>
         <p class="small">Reveal.js, Plotly, Mermaid, estilos e dados são empacotados localmente. Nenhum recurso de runtime usa CDN.</p>
-        <aside class="notes">Apêndice. O build valida o schema essencial do relatório e incorpora exatamente o JSON oficial.</aside>
+        <aside class="notes"><p><strong>Reprodução do deck:</strong> os três JSON oficiais entram no build e podem ser baixados pelos links. Os testes verificam hashes, gráficos, notas e execução offline.</p><p><strong>MLflow local:</strong> na raiz, execute <code>mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000</code> e abra <code>http://127.0.0.1:5000</code>. O tracking não é público nem está no deploy AWS.</p></aside>
       </section>
     </div>
   </div>
