@@ -29,7 +29,7 @@ present lambda-runtime-role aws iam get-role --role-name "${prefix}-lambda"
 [[ "$(aws cloudfront list-distributions --query "length(DistributionList.Items[?Comment=='Temporary tc4-mlops synthetic demo'] || \`[]\`)" --output text)" == 0 ]] || residues+=("cloudfront")
 [[ "$(aws cloudfront list-origin-access-controls --query "length(OriginAccessControlList.Items[?Name=='${prefix}-presentation-oac'] || \`[]\`)" --output text)" == 0 ]] || residues+=("cloudfront-oac")
 [[ "$(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/${prefix}-api" --query 'length(logGroups)' --output text)" == 0 ]] || residues+=("cloudwatch-log-group")
-[[ "$(aws cloudwatch list-dashboards --dashboard-name-prefix "$prefix" --query 'length(DashboardEntries)' --output text)" == 0 ]] || residues+=("cloudwatch-dashboard")
+present cloudwatch-dashboard aws cloudwatch get-dashboard --dashboard-name "${prefix}-dashboard"
 # shellcheck disable=SC2016 # Backticks are JMESPath literal syntax, not shell expansion.
 metric_alarm_count="$(aws cloudwatch describe-alarms --alarm-name-prefix "$prefix" --query 'length(MetricAlarms || `[]`)' --output text)"
 # shellcheck disable=SC2016 # Backticks are JMESPath literal syntax, not shell expansion.
@@ -42,9 +42,10 @@ if ! "$allow_active_state"; then
 fi
 
 # These are explicit survivors. Failure is not downgraded to a residue because
-# an apparently clean destroy without its recovery foundation is unsafe.
+# an apparently clean destroy without its recovery foundation is unsafe. The
+# bootstrap state HeadObject proves the state bucket and recovery state exist;
+# do not add a broader bucket-level probe just to duplicate that proof.
 for survivor in \
-  "s3api head-bucket --bucket $state_bucket" \
   "s3api head-object --bucket $state_bucket --key $bootstrap_key" \
   "iam get-role --role-name tc4-mlops-github-plan" \
   "iam get-role --role-name tc4-mlops-github-deploy" \
