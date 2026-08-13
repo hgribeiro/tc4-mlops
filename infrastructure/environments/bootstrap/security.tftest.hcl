@@ -134,7 +134,7 @@ run "separates_plan_and_deploy_and_limits_them_to_bootstrap_and_concrete_demo_op
   }
 
   assert {
-    condition     = strcontains(aws_iam_policy.automation_boundary.policy, "DemoStateRW") && !strcontains(aws_iam_policy.automation_boundary.policy, "iam:*")
+    condition     = strcontains(aws_iam_policy.automation_boundary.policy, "DSR") && !strcontains(aws_iam_policy.automation_boundary.policy, "iam:*")
     error_message = "A boundary deve permitir o state separado da demo sem liberar IAM amplo."
   }
 }
@@ -179,13 +179,17 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
 
   assert {
     condition = alltrue([
-      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "apigateway:PUT"),
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DO"]), "apigateway:PUT"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "CreateAndReadOnlyRequiredControlPlaneResources"]), "apigateway:PUT"),
-      length([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement if statement.Sid == "ApiGwServiceRole" && statement.Condition.StringEquals["iam:AWSServiceName"] == "ops.apigateway.amazonaws.com"]) == 1,
+      toset(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "AGT"])) == toset(["apigateway:TagResource"]),
+      toset(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Resource if statement.Sid == "AGT"])) == toset([local.demo_api_stage_collection_arn]),
+      toset(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "ApiGatewayStageTagOnCreate"])) == toset(["apigateway:TagResource"]),
+      toset(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Resource if statement.Sid == "ApiGatewayStageTagOnCreate"])) == toset([local.demo_api_stage_collection_arn]),
+      length([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement if statement.Sid == "AGS" && statement.Condition.StringEquals["iam:AWSServiceName"] == "ops.apigateway.amazonaws.com"]) == 1,
       length([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement if statement.Sid == "ApiGwServiceRole" && statement.Condition.StringEquals["iam:AWSServiceName"] == "ops.apigateway.amazonaws.com"]) == 1,
-      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "ecr:SetRepositoryPolicy"),
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DO"]), "ecr:SetRepositoryPolicy"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:SetRepositoryPolicy"),
-      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DemoOperations"]), "ecr:BatchCheckLayerAvailability"),
+      contains(one([for statement in jsondecode(aws_iam_policy.automation_boundary.policy).Statement : statement.Action if statement.Sid == "DO"]), "ecr:BatchCheckLayerAvailability"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:BatchCheckLayerAvailability"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteEcrAndLambda"]), "ecr:GetDownloadUrlForLayer"),
       contains(one([for statement in jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement : statement.Action if statement.Sid == "OperateConcreteDataAndRuntimeResources"]), "s3:ListTagsForResource"),

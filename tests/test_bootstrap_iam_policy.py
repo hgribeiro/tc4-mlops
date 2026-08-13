@@ -124,7 +124,7 @@ def test_ecr_image_push_protocol_is_allowed_in_both_policy_layers():
     deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
 
     boundary_actions, boundary_resource = _statement_actions_and_resource(
-        boundary, "DemoOperations"
+        boundary, "DO"
     )
     deploy_actions, deploy_resource = _statement_actions_and_resource(
         deploy_policy, "OperateConcreteEcrAndLambda"
@@ -142,7 +142,7 @@ def test_api_gateway_tagging_and_ecr_repository_policy_are_allowed_in_both_layer
     deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
 
     boundary_actions, _ = _statement_actions_and_resource(
-        boundary, "DemoOperations"
+        boundary, "DO"
     )
     control_actions, control_resource = _statement_actions_and_resource(
         deploy_policy, "CreateAndReadOnlyRequiredControlPlaneResources"
@@ -153,16 +153,25 @@ def test_api_gateway_tagging_and_ecr_repository_policy_are_allowed_in_both_layer
 
     assert "apigateway:PUT" in boundary_actions
     assert "apigateway:PUT" in control_actions
-    assert "apigateway:TagResource" not in source
+
+    # API Gateway V2 CreateStage performs this dependent authorization when
+    # tags are supplied, despite Access Analyzer classifying the action as
+    # invalid. Keep the runtime compatibility exception resource-scoped.
+    for policy, sid in ((boundary, "AGT"), (deploy_policy, "ApiGatewayStageTagOnCreate")):
+        stage_tag_actions, stage_tag_resource = _statement_actions_and_resource(
+            policy, sid
+        )
+        assert stage_tag_actions == {"apigateway:TagResource"}
+        assert stage_tag_resource == "[local.demo_api_stage_collection_arn]"
     assert "apigateway:UntagResource" not in source
     assert control_resource == '"*"'
     assert ECR_REPOSITORY_POLICY_ACTIONS <= boundary_actions
     assert ECR_REPOSITORY_POLICY_ACTIONS <= ecr_actions
     assert ecr_resource == "[local.demo_ecr_arn]"
 
-    for policy in (boundary, deploy_policy):
+    for policy, sid in ((boundary, "AGS"), (deploy_policy, "ApiGwServiceRole")):
         service_linked_actions, service_linked_resource = _statement_actions_and_resource(
-            policy, "ApiGwServiceRole"
+            policy, sid
         )
         assert service_linked_actions == {"iam:CreateServiceLinkedRole"}
         assert "ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway" in service_linked_resource
@@ -187,5 +196,5 @@ def test_evidenced_teardown_deletes_are_exact_and_scoped_in_both_policy_layers()
             assert resource == expected_resource
 
     assert '"logs:DeleteLogGroup"' not in _statement_actions_and_resource(
-        boundary, "DemoOperations"
+        boundary, "DO"
     )[0]
