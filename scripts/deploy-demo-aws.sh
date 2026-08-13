@@ -41,11 +41,22 @@ EOF
 trap 'rm -f "$backend_file"' EXIT
 
 terraform -chdir="$demo_dir" init -reconfigure -backend-config=backend.hcl
-# Never re-run the image-null bootstrap apply when this state already owns ECR:
-# it would otherwise plan to remove a runtime created by the image stage.
-if terraform -chdir="$demo_dir" state list | grep -qx 'aws_ecr_repository.api'; then
+state_resources="$(terraform -chdir="$demo_dir" state list)"
+# Never re-run the full image-null bootstrap apply when this state already owns
+# ECR: it would otherwise plan to remove a runtime created by the image stage.
+if grep -qx 'aws_ecr_repository.api' <<<"$state_resources"; then
   ecr_url="$(terraform -chdir="$demo_dir" output -raw ecr_repository_url)"
   echo "Reusing ECR already tracked in separate demo state: $ecr_url"
+  # A failed first stage may have persisted ECR before CloudFront. Resume only
+  # the missing distribution and its dependencies; the image apply below then
+  # reconciles every remaining resource without deleting an existing runtime.
+  if ! grep -qx 'aws_cloudfront_distribution.presentation' <<<"$state_resources"; then
+    echo "Resuming missing CloudFront distribution from partial demo state."
+    terraform -chdir="$demo_dir" apply -auto-approve \
+      -target=aws_cloudfront_distribution.presentation \
+      -var="aws_region=$region" -var="commit_sha=$commit_sha" \
+      -var="expires_at=$expires_at" -var="low_quota_mode=$low_quota_mode"
+  fi
 else
   terraform -chdir="$demo_dir" apply -auto-approve \
     -var="aws_region=$region" -var="commit_sha=$commit_sha" \

@@ -19,12 +19,13 @@ locals {
   demo_lock_arn    = "${aws_s3_bucket.terraform_state.arn}/${local.demo_state_key}.tflock"
   # The concrete temporary demo naming convention is account-bound. It is not
   # a wildcard for arbitrary repositories, accounts or resource families.
-  demo_prefix        = "tc4-mlops-demo-969212888717"
-  demo_s3_arns       = ["arn:aws:s3:::${local.demo_prefix}-presentation", "arn:aws:s3:::${local.demo_prefix}-presentation/*", "arn:aws:s3:::${local.demo_prefix}-audit", "arn:aws:s3:::${local.demo_prefix}-audit/*"]
-  demo_lambda_arn    = "arn:aws:lambda:us-east-1:969212888717:function:${local.demo_prefix}-api"
-  demo_ecr_arn       = "arn:aws:ecr:us-east-1:969212888717:repository/${local.demo_prefix}-api"
-  demo_runtime_role  = "arn:aws:iam::969212888717:role/${local.demo_prefix}-lambda"
-  demo_log_group_arn = "arn:aws:logs:us-east-1:969212888717:log-group:/aws/lambda/${local.demo_prefix}-api:*"
+  demo_prefix                      = "tc4-mlops-demo-969212888717"
+  demo_s3_arns                     = ["arn:aws:s3:::${local.demo_prefix}-presentation", "arn:aws:s3:::${local.demo_prefix}-presentation/*", "arn:aws:s3:::${local.demo_prefix}-audit", "arn:aws:s3:::${local.demo_prefix}-audit/*"]
+  demo_lambda_arn                  = "arn:aws:lambda:us-east-1:969212888717:function:${local.demo_prefix}-api"
+  demo_ecr_arn                     = "arn:aws:ecr:us-east-1:969212888717:repository/${local.demo_prefix}-api"
+  demo_runtime_role                = "arn:aws:iam::969212888717:role/${local.demo_prefix}-lambda"
+  demo_log_group_arn               = "arn:aws:logs:us-east-1:969212888717:log-group:/aws/lambda/${local.demo_prefix}-api:*"
+  demo_cloudfront_distribution_arn = "arn:aws:cloudfront::969212888717:distribution/*"
   common_tags = {
     Project     = local.project_name
     Environment = "bootstrap"
@@ -162,6 +163,32 @@ resource "aws_iam_policy" "automation_boundary" {
           "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"
         ]
         Resource = "*"
+      },
+      {
+        Sid      = "TagRequestedDemoCloudFrontDistribution"
+        Effect   = "Allow"
+        Action   = ["cloudfront:TagResource"]
+        Resource = [local.demo_cloudfront_distribution_arn]
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/Project"     = "tc4-mlops"
+            "aws:RequestTag/Environment" = "demo"
+            "aws:RequestTag/ManagedBy"   = "terraform"
+          }
+        }
+      },
+      {
+        Sid      = "RetagExistingDemoCloudFrontDistribution"
+        Effect   = "Allow"
+        Action   = ["cloudfront:TagResource", "cloudfront:UntagResource"]
+        Resource = [local.demo_cloudfront_distribution_arn]
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/Project"     = "tc4-mlops"
+            "aws:ResourceTag/Environment" = "demo"
+            "aws:ResourceTag/ManagedBy"   = "terraform"
+          }
+        }
       },
       {
         Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
@@ -383,6 +410,32 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Effect   = "Allow"
         Action   = ["iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"]
         Resource = [local.demo_runtime_role]
+      },
+      {
+        Sid      = "TagRequestedDemoCloudFrontDistribution"
+        Effect   = "Allow"
+        Action   = ["cloudfront:TagResource"]
+        Resource = [local.demo_cloudfront_distribution_arn]
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/Project"     = "tc4-mlops"
+            "aws:RequestTag/Environment" = "demo"
+            "aws:RequestTag/ManagedBy"   = "terraform"
+          }
+        }
+      },
+      {
+        Sid      = "RetagExistingDemoCloudFrontDistribution"
+        Effect   = "Allow"
+        Action   = ["cloudfront:TagResource", "cloudfront:UntagResource"]
+        Resource = [local.demo_cloudfront_distribution_arn]
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/Project"     = "tc4-mlops"
+            "aws:ResourceTag/Environment" = "demo"
+            "aws:ResourceTag/ManagedBy"   = "terraform"
+          }
+        }
       },
       {
         Sid      = "ManageConcreteDemoEcrLifecyclePolicy"
