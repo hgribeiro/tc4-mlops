@@ -46,7 +46,7 @@ allowed = {
  "aws_s3_bucket.presentation", "aws_s3_bucket.audit", "aws_s3_bucket_ownership_controls.presentation", "aws_s3_bucket_ownership_controls.audit",
  "aws_s3_bucket_public_access_block.presentation", "aws_s3_bucket_public_access_block.audit", "aws_s3_bucket_server_side_encryption_configuration.presentation", "aws_s3_bucket_server_side_encryption_configuration.audit",
  "aws_s3_bucket_policy.presentation", "aws_s3_bucket_policy.audit", "aws_cloudfront_origin_access_control.presentation", "aws_cloudfront_distribution.presentation",
- "aws_ecr_repository.api", "aws_ecr_lifecycle_policy.api", "aws_cloudwatch_log_group.api", "aws_iam_role.lambda", "aws_iam_role_policy.lambda_runtime",
+ "aws_ecr_repository.api", "aws_ecr_repository_policy.lambda_pull", "aws_ecr_lifecycle_policy.api", "aws_cloudwatch_log_group.api", "aws_iam_role.lambda", "aws_iam_role_policy.lambda_runtime",
  "aws_lambda_function.api", "aws_apigatewayv2_api.http", "aws_apigatewayv2_integration.api", "aws_apigatewayv2_route.decisions", "aws_apigatewayv2_route.health",
  "aws_apigatewayv2_route.ready", "aws_apigatewayv2_stage.default", "aws_lambda_permission.api_gateway", "aws_cloudwatch_log_metric_filter.decisions",
  "aws_cloudwatch_log_metric_filter.audit_failures", "aws_cloudwatch_metric_alarm.lambda_errors", "aws_cloudwatch_metric_alarm.audit_failures", "aws_cloudwatch_dashboard.demo",

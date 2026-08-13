@@ -49,6 +49,7 @@ def test_teardown_recovers_from_empty_outputs_and_verifies_before_emptying_audit
         'bootstrap_state_key="bootstrap/terraform.tfstate"',
         'audit_bucket="tc4-mlops-demo-${account}-audit"',
         "Unexpected managed resource in demo state", "Unexpected AWS account",
+        '"aws_ecr_repository_policy.lambda_pull"',
         "DESTROY_APPROVED=DESTROY_DEMO", "--expired-only",
         'scripts/export-demo-evidence.sh', "manifest-before-destroy.json",
         "empty_audit_bucket", "list-object-versions", "delete-objects",
