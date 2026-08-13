@@ -23,6 +23,7 @@ locals {
   demo_s3_arns                     = ["arn:aws:s3:::${local.demo_prefix}-presentation", "arn:aws:s3:::${local.demo_prefix}-presentation/*", "arn:aws:s3:::${local.demo_prefix}-audit", "arn:aws:s3:::${local.demo_prefix}-audit/*"]
   demo_lambda_arn                  = "arn:aws:lambda:us-east-1:969212888717:function:${local.demo_prefix}-api"
   demo_ecr_arn                     = "arn:aws:ecr:us-east-1:969212888717:repository/${local.demo_prefix}-api"
+  demo_api_stage_collection_arn    = "arn:aws:apigateway:us-east-1::/apis/*/stages"
   demo_runtime_role                = "arn:aws:iam::969212888717:role/${local.demo_prefix}-lambda"
   demo_log_group_arn               = "arn:aws:logs:us-east-1:969212888717:log-group:/aws/lambda/${local.demo_prefix}-api:*"
   demo_cloudfront_distribution_arn = "arn:aws:cloudfront::969212888717:distribution/*"
@@ -114,7 +115,7 @@ resource "aws_iam_policy" "automation_boundary" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "BootstrapStateList"
+        Sid      = "BSL"
         Effect   = "Allow"
         Action   = ["s3:ListBucket"]
         Resource = [aws_s3_bucket.terraform_state.arn]
@@ -125,32 +126,32 @@ resource "aws_iam_policy" "automation_boundary" {
         }
       },
       {
-        Sid      = "BootstrapStateRW"
+        Sid      = "BSR"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]
         Resource = [local.state_object_arn]
       },
       {
-        Sid      = "BootstrapLock"
+        Sid      = "BL"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [local.lock_object_arn]
       },
       {
-        Sid      = "DemoStateRW"
+        Sid      = "DSR"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject", "s3:DeleteObject"]
         Resource = [local.demo_state_arn, local.demo_lock_arn]
       },
       {
-        Sid       = "DemoStateList"
+        Sid       = "DSL"
         Effect    = "Allow"
         Action    = ["s3:ListBucket"]
         Resource  = [aws_s3_bucket.terraform_state.arn]
         Condition = { StringLike = { "s3:prefix" = [local.demo_state_key, "${local.demo_state_key}.tflock"] } }
       },
       {
-        Sid    = "DemoOperations"
+        Sid    = "DO"
         Effect = "Allow"
         Action = [
           "apigateway:GET", "apigateway:POST", "apigateway:PATCH", "apigateway:DELETE", "apigateway:PUT",
@@ -191,7 +192,17 @@ resource "aws_iam_policy" "automation_boundary" {
         }
       },
       {
-        Sid      = "ApiGwServiceRole"
+        # API Gateway V2 authorizes this literal dependent action when
+        # CreateStage includes tags, although IAM Access Analyzer currently
+        # classifies it as invalid. Scope the compatibility exception to stage
+        # collections instead of granting it on all API Gateway resources.
+        Sid      = "AGT"
+        Effect   = "Allow"
+        Action   = ["apigateway:TagResource"]
+        Resource = [local.demo_api_stage_collection_arn]
+      },
+      {
+        Sid      = "AGS"
         Effect   = "Allow"
         Action   = ["iam:CreateServiceLinkedRole"]
         Resource = "arn:aws:iam::*:role/aws-service-role/ops.apigateway.amazonaws.com/AWSServiceRoleForAPIGateway"
@@ -226,7 +237,7 @@ resource "aws_iam_policy" "automation_boundary" {
         Resource = [local.demo_runtime_role]
       },
       {
-        Sid      = "TeardownSurvivors"
+        Sid      = "TS"
         Effect   = "Allow"
         Action   = ["budgets:ViewBudget", "iam:GetPolicy", "iam:ListOpenIDConnectProviders"]
         Resource = "*"
@@ -475,6 +486,16 @@ resource "aws_iam_role_policy" "deploy_demo" {
         Effect   = "Allow"
         Action   = ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:GetRolePolicy", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags", "iam:TagRole", "iam:UntagRole", "iam:PassRole"]
         Resource = [local.demo_runtime_role]
+      },
+      {
+        # API Gateway V2 authorizes this literal dependent action when
+        # CreateStage includes tags, although IAM Access Analyzer currently
+        # classifies it as invalid. Scope the compatibility exception to stage
+        # collections instead of granting it on all API Gateway resources.
+        Sid      = "ApiGatewayStageTagOnCreate"
+        Effect   = "Allow"
+        Action   = ["apigateway:TagResource"]
+        Resource = [local.demo_api_stage_collection_arn]
       },
       {
         Sid      = "ApiGwServiceRole"
