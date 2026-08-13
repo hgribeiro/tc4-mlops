@@ -19,6 +19,14 @@ RUNTIME_ROLE_REFRESH_READS = {
     "iam:ListAttachedRolePolicies",
     "iam:ListInstanceProfilesForRole",
 }
+CLOUDFRONT_DEMO_TAGS = {
+    '"aws:RequestTag/Project"     = "tc4-mlops"',
+    '"aws:RequestTag/Environment" = "demo"',
+    '"aws:RequestTag/ManagedBy"   = "terraform"',
+    '"aws:ResourceTag/Project"     = "tc4-mlops"',
+    '"aws:ResourceTag/Environment" = "demo"',
+    '"aws:ResourceTag/ManagedBy"   = "terraform"',
+}
 TEARDOWN_DELETES = {
     "ManageConcreteDemoEcrLifecyclePolicy": (
         {"ecr:DeleteLifecyclePolicy"},
@@ -67,6 +75,28 @@ def test_provider_refresh_reads_are_exact_and_scoped_in_both_policy_layers():
         assert role_resource == "[local.demo_runtime_role]"
         assert '"s3:Get*"' not in policy
         assert '"iam:List*"' not in policy
+
+
+def test_cloudfront_tagging_is_exact_and_scoped_in_both_policy_layers():
+    source = BOOTSTRAP.read_text()
+    boundary = _resource_block(source, 'resource "aws_iam_policy" "automation_boundary"')
+    deploy_policy = _resource_block(source, 'resource "aws_iam_role_policy" "deploy_demo"')
+
+    for policy in (boundary, deploy_policy):
+        request_actions, request_resource = _statement_actions_and_resource(
+            policy, "TagRequestedDemoCloudFrontDistribution"
+        )
+        existing_actions, existing_resource = _statement_actions_and_resource(
+            policy, "RetagExistingDemoCloudFrontDistribution"
+        )
+        assert request_actions == {"cloudfront:TagResource"}
+        assert existing_actions == {
+            "cloudfront:TagResource",
+            "cloudfront:UntagResource",
+        }
+        assert request_resource == "[local.demo_cloudfront_distribution_arn]"
+        assert existing_resource == "[local.demo_cloudfront_distribution_arn]"
+        assert all(tag in policy for tag in CLOUDFRONT_DEMO_TAGS)
 
 
 def test_s3_encryption_refresh_uses_the_iam_action_for_get_bucket_encryption():

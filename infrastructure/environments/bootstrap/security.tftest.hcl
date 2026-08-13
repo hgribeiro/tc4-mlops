@@ -165,6 +165,21 @@ run "permits_evidenced_provider_refresh_reads_on_exact_demo_resources" {
   assert {
     condition = alltrue([
       for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
+      length([for statement in policy : statement if statement.Sid == "TagRequestedDemoCloudFrontDistribution"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "TagRequestedDemoCloudFrontDistribution"])) == toset(["cloudfront:TagResource"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "TagRequestedDemoCloudFrontDistribution"])) == toset([local.demo_cloudfront_distribution_arn]) &&
+      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "TagRequestedDemoCloudFrontDistribution"]) == { "aws:RequestTag/Project" = "tc4-mlops", "aws:RequestTag/Environment" = "demo", "aws:RequestTag/ManagedBy" = "terraform" } &&
+      length([for statement in policy : statement if statement.Sid == "RetagExistingDemoCloudFrontDistribution"]) == 1 &&
+      toset(one([for statement in policy : statement.Action if statement.Sid == "RetagExistingDemoCloudFrontDistribution"])) == toset(["cloudfront:TagResource", "cloudfront:UntagResource"]) &&
+      toset(one([for statement in policy : statement.Resource if statement.Sid == "RetagExistingDemoCloudFrontDistribution"])) == toset([local.demo_cloudfront_distribution_arn]) &&
+      one([for statement in policy : statement.Condition.StringEquals if statement.Sid == "RetagExistingDemoCloudFrontDistribution"]) == { "aws:ResourceTag/Project" = "tc4-mlops", "aws:ResourceTag/Environment" = "demo", "aws:ResourceTag/ManagedBy" = "terraform" }
+    ])
+    error_message = "As duas camadas devem permitir tagging CloudFront somente quando as tags identificam a demo gerenciada."
+  }
+
+  assert {
+    condition = alltrue([
+      for policy in [jsondecode(aws_iam_policy.automation_boundary.policy).Statement, jsondecode(aws_iam_role_policy.deploy_demo.policy).Statement] :
       length([for statement in policy : statement if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"]) == 1 &&
       toset(one([for statement in policy : statement.Action if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset(["ecr:DeleteLifecyclePolicy"]) &&
       toset(one([for statement in policy : statement.Resource if statement.Sid == "ManageConcreteDemoEcrLifecyclePolicy"])) == toset([local.demo_ecr_arn]) &&
